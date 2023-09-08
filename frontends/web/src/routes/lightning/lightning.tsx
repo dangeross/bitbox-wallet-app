@@ -48,12 +48,14 @@ export function Lightning({
   const { t } = useTranslation();
 
   const [balance, setBalance] = useState<accountApi.IBalance>();
+  const [blockHeight, setBlockHeight] = useState<number>();
   const [syncedAddressesCount] = useState<number>();
   const [transactions] = useState<accountApi.TTransactions>();
   const [stateCode, setStateCode] = useState<string>();
   const supportedExchanges = useLoad<SupportedExchanges>(getExchangeBuySupported(code), [code]);
 
   const onStatusChanged = useCallback((lightningStatus: ILightningStatus) => {
+    setBlockHeight(lightningStatus.blockHeight);
     setBalance({
       hasAvailable: lightningStatus.localBalance > 0,
       available: {
@@ -154,6 +156,11 @@ export function Lightning({
                 </label>
                 {!isAccountEmpty && <ActionButtons {...actionButtonsProps} />}
               </div>
+            </div>
+            <div className="flex flex-row flex-between flex-item-center flex-column-mobile flex-reverse-mobile">
+              <label className="labelXLarge flex-self-start-mobile hide-on-small">
+                Block Height: {blockHeight}
+              </label>
             </div>
             {isAccountEmpty && (
               <BuyReceiveCTA
