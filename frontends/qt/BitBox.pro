@@ -27,7 +27,7 @@ DEFINES += QAPPLICATION_CLASS=QApplication
 
 win32 {
     # -llibssp would be nice to have on Windows
-    LIBS += -L$$PWD/server/ -llibserver
+    LIBS += -L$$PWD/server/ -llibserver -lbreez_sdk_bindings
     DESTDIR = $$PWD/build/windows
     RC_ICONS += $$PWD/resources/win/icon.ico
     # These flags aren't currently being respected at build time on Windows
@@ -38,7 +38,7 @@ win32 {
     #QMAKE_LFLAGS += -Wl,--dynamicbase
 } else {
     QMAKE_CXXFLAGS += -std=c++11
-    LIBS += -L$$PWD/server -lserver
+    LIBS += -L$$PWD/server -lserver -lbreez_sdk_bindings
     QMAKE_CXXFLAGS += $$CFORTIFY
     QMAKE_CXXFLAGS += $$CSTACK
     QMAKE_CXXFLAGS += $$CMISC
