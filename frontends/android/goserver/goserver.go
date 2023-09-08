@@ -177,7 +177,7 @@ func Serve(dataDir string, environment GoEnvironmentInterface, goAPI GoAPIInterf
 		logging.Get().AddHook(goLogHook{})
 	})
 
-	testnet := false
+	testnet := true
 	bridgecommon.Serve(
 		testnet,
 		nil,
