@@ -22,8 +22,8 @@ import (
 // connect initializes the connection configuration and calls connect to create a Breez SDK instance.
 func (handlers *Handlers) connect() {
 	if handlers.sdkService == nil {
-		handlers.log.Print("BreezSDK: SetLogStream")
-		initializeLogging(handlers.log)
+		//handlers.log.Print("BreezSDK: SetLogStream")
+		//initializeLogging(handlers.log)
 
 		// TODO: this seed should be determined from the account/device.
 		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
