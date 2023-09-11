@@ -27,12 +27,14 @@ func (handlers *Handlers) connect() {
 
 		// TODO: this seed should be determined from the account/device.
 		handlers.log.Print("BreezSDK: ParseInput")
-		_, err := breez_sdk.ParseInput("satimoto@stacker.news")
+		input, err := breez_sdk.ParseInput("satimoto@stacker.news")
 
 		if err != nil {
 			handlers.log.WithError(err).Warn("BreezSDK: ParseInput failed")
 			return
 		}
+
+		handlers.log.Printf("BreezSDK: ParseInput %#v", input)
 
 		handlers.log.Print("BreezSDK: MnemonicToSeed")
 		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
