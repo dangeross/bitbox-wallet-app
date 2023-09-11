@@ -22,10 +22,12 @@ import (
 // connect initializes the connection configuration and calls connect to create a Breez SDK instance.
 func (handlers *Handlers) connect() {
 	if handlers.sdkService == nil {
+		handlers.log.Print("BreezSDK: SetLogStream")
 		initializeLogging(handlers.log)
 
 		// TODO: this seed should be determined from the account/device.
 		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
+		handlers.log.Print("BreezSDK: MnemonicToSeed")
 
 		if err != nil {
 			handlers.log.WithError(err).Warn("BreezSDK: MnemonicToSeed failed")
@@ -46,8 +48,10 @@ func (handlers *Handlers) connect() {
 			return
 		}
 
+		handlers.log.Print("BreezSDK: DefaultConfig")
 		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "", nodeConfig)
 		config.WorkingDir = *workingDir
+		handlers.log.Print("BreezSDK: Connect")
 		sdkService, err := breez_sdk.Connect(config, seed, handlers)
 
 		if err != nil {
