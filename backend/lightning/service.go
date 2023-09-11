@@ -26,13 +26,22 @@ func (handlers *Handlers) connect() {
 		initializeLogging(handlers.log)
 
 		// TODO: this seed should be determined from the account/device.
-		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
-		handlers.log.Print("BreezSDK: MnemonicToSeed")
+		handlers.log.Print("BreezSDK: ParseInput")
+		_, err := breez_sdk.ParseInput("satimoto@stacker.news")
 
+		if err != nil {
+			handlers.log.WithError(err).Warn("BreezSDK: ParseInput failed")
+			return
+		}
+
+		handlers.log.Print("BreezSDK: MnemonicToSeed")
+		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
 		if err != nil {
 			handlers.log.WithError(err).Warn("BreezSDK: MnemonicToSeed failed")
 			return
 		}
+
+		handlers.log.Printf("BreezSDK: MnemonicToSeed %#v", seed)
 
 		nodeConfig := breez_sdk.NodeConfigGreenlight{
 			Config: breez_sdk.GreenlightNodeConfig{
