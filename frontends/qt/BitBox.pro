@@ -25,13 +25,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(external/singleapplication/singleapplication.pri)
 DEFINES += QAPPLICATION_CLASS=QApplication
 
-unix:macx {
-    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/darwin-amd64/ -lbreez_sdk_bindings
-}
-unix:!macx {
-    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64/ -lbreez_sdk_bindings
-}
-
 win64 {
     LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64/ -lbreez_sdk_bindings
     INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
@@ -59,6 +52,7 @@ win32 {
 
 # https://stackoverflow.com/questions/18462420/how-to-specify-mac-platform-in-qmake-qtcreator
 unix:!macx {
+    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64/ -lbreez_sdk_bindings
     QMAKE_LFLAGS_RPATH=
     # so libserver.so will be found by linuxdeployqt, once copied into the same folder.
     QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
@@ -75,6 +69,7 @@ unix:macx {
     # Those frameworks are needed for Go's http/net packages.
     # Waiting for https://github.com/golang/go/issues/11258 to be able to automatically capture link flags.
     LIBS += -framework CoreFoundation -framework Security
+    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/darwin-amd64/ -lbreez_sdk_bindings
     # QMAKE_RPATHDIR = @executable_path/../Frameworks
     QMAKE_LFLAGS += "-pie -s -w"
     QMAKE_MACOSX_DEPLOYMENT_TARGET = $$[MACOS_MIN_VERSION]

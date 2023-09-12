@@ -22,6 +22,24 @@ import (
 // connect initializes the connection configuration and calls connect to create a Breez SDK instance.
 func (handlers *Handlers) connect() {
 	if handlers.sdkService == nil {
+		nodeConfig := breez_sdk.NodeConfigGreenlight{
+			Config: breez_sdk.GreenlightNodeConfig{
+				PartnerCredentials: nil,
+				InviteCode:         nil,
+			},
+		}
+
+		workingDir, err := ensurePath(handlers.account)
+
+		if err != nil {
+			handlers.log.WithError(err).Warn("BreezSDK: Error ensuring working directory")
+			return
+		}
+
+		handlers.log.Print("BreezSDK: DefaultConfig")
+		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "", nodeConfig)
+		config.WorkingDir = *workingDir
+
 		handlers.log.Print("BreezSDK: SetLogStream")
 		initializeLogging(handlers.log)
 
