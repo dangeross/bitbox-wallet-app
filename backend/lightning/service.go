@@ -63,23 +63,6 @@ func (handlers *Handlers) connect() {
 
 		handlers.log.Printf("BreezSDK: MnemonicToSeed %#v", seed)
 
-		nodeConfig := breez_sdk.NodeConfigGreenlight{
-			Config: breez_sdk.GreenlightNodeConfig{
-				PartnerCredentials: nil,
-				InviteCode:         nil,
-			},
-		}
-
-		workingDir, err := ensurePath(handlers.account)
-
-		if err != nil {
-			handlers.log.WithError(err).Warn("BreezSDK: Error ensuring working directory")
-			return
-		}
-
-		handlers.log.Print("BreezSDK: DefaultConfig")
-		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "", nodeConfig)
-		config.WorkingDir = *workingDir
 		handlers.log.Print("BreezSDK: Connect")
 		sdkService, err := breez_sdk.Connect(config, seed, handlers)
 
