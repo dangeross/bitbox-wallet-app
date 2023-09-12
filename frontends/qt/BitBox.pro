@@ -7,6 +7,8 @@
 QT       += core gui
 QT       += webenginewidgets
 
+greaterThan(QT_MAJOR_VERSION, 4): QT += quick widgets quickwidgets
+
 TARGET = BitBox
 TEMPLATE = app
 
