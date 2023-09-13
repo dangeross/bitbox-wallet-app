@@ -36,6 +36,7 @@
 #include <QtPlatformHeaders/QWindowsWindowFunctions>
 #endif
 
+#include <exception>
 #include <iostream>
 #include <set>
 #include <stdlib.h>
@@ -69,6 +70,22 @@ public:
         // ExcludeAppPath: the path might not always be the same, especially with .AppImage, it extracts to a new location on every launch.
         Mode::User | Mode::SecondaryNotification | Mode::ExcludeAppVersion | Mode::ExcludeAppPath)
     {
+    }
+
+    bool notify(QObject* receiver, QEvent* event)
+    {
+        QString msg;
+        try {
+            return SingleApplication::notify(receiver, event);
+        } catch (std::exception& e) {
+            msg = e.what();
+        } catch (...) {
+            msg = "Unknown exception";
+        }
+
+        QMessageBox::critical(0, "Error", msg);
+
+        return false;
     }
 
 #if defined(Q_OS_MACOS)
