@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     // Log
-    m_logFile.reset(new QFile("log.txt"));
+    m_logFile.reset(new QFile(QCoreApplication::applicationDirPath() + QDir::separator() + "log.txt"));
     m_logFile.data()->open(QFile::Append | QFile::Text);
     qInstallMessageHandler(messageHandler);
 
