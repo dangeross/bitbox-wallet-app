@@ -21,6 +21,15 @@ import (
 
 // connect initializes the connection configuration and calls connect to create a Breez SDK instance.
 func (handlers *Handlers) connect() {
+	defer func() { //catch or finally
+        if r := recover(); r != nil { //catch
+			err, ok := r.(error)
+			if !ok {
+				handlers.log.WithError(err).Warn("BreezSDK: Panic")
+			}
+        }
+    }()
+	
 	if handlers.sdkService == nil {
 		handlers.log.Print("BreezSDK: SetLogStream")
 		initializeLogging(handlers.log)
