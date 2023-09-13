@@ -32,6 +32,13 @@
 #include <QSystemTrayIcon>
 #include <QMessageBox>
 #include <QtGlobal>
+#include <QFile>
+#include <QDir>
+#include <QScopedPointer>
+#include <QTextStream>
+#include <QDateTime>
+#include <QDebug>
+
 #if defined(_WIN32)
 #include <QtPlatformHeaders/QWindowsWindowFunctions>
 #endif
@@ -74,16 +81,13 @@ public:
 
     bool notify(QObject* receiver, QEvent* event)
     {
-        QString msg;
         try {
             return SingleApplication::notify(receiver, event);
         } catch (std::exception& e) {
-            msg = e.what();
+            qCritical(logCritical()) << "Exception: " << e.what();
         } catch (...) {
-            msg = "Unknown exception";
+            qCritical(logCritical()) << "Unknown exception";
         }
-
-        QMessageBox::critical(0, "Error", msg);
 
         return false;
     }
@@ -180,10 +184,19 @@ public:
     }
 };
 
+QScopedPointer<QFile> m_logFile;
+
+void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+
 int main(int argc, char *argv[])
 {
     // Enable auto HiDPI scaling to correctly manage scale factor on bigger screens
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+
+    // Log
+    m_logFile.reset(new QFile("log.txt"));
+    m_logFile.data()->open(QFile::Append | QFile::Text);
+    qInstallMessageHandler(messageHandler);
 
     // Make `@media (prefers-color-scheme: light/dark)` CSS rules work.
     // See https://github.com/qutebrowser/qutebrowser/issues/5915#issuecomment-737115530
@@ -405,4 +418,25 @@ int main(int argc, char *argv[])
     }
 
     return a.exec();
+}
+
+// The implementation of the handler
+void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    // Open stream file writes
+    QTextStream out(m_logFile.data());
+    // Write the date of recording
+    out << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz ");
+    // By type determine to what level belongs message
+    switch (type)
+    {
+    case QtInfoMsg:     out << "INF "; break;
+    case QtDebugMsg:    out << "DBG "; break;
+    case QtWarningMsg:  out << "WRN "; break;
+    case QtCriticalMsg: out << "CRT "; break;
+    case QtFatalMsg:    out << "FTL "; break;
+    }
+    // Write to the output category of the message and the message itself
+    out << context.category << ": " << msg << endl;
+    out.flush();    // Clear the buffered data
 }
