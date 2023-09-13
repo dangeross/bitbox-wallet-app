@@ -84,9 +84,9 @@ public:
         try {
             return SingleApplication::notify(receiver, event);
         } catch (std::exception& e) {
-            qCritical(logCritical()) << "Exception: " << e.what();
+            qCritical() << "Exception: " << e.what();
         } catch (...) {
-            qCritical(logCritical()) << "Unknown exception";
+            qCritical() << "Unknown exception";
         }
 
         return false;
