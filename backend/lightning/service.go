@@ -22,6 +22,19 @@ import (
 // connect initializes the connection configuration and calls connect to create a Breez SDK instance.
 func (handlers *Handlers) connect() {
 	if handlers.sdkService == nil {
+		handlers.log.Print("BreezSDK: SetLogStream")
+		initializeLogging(handlers.log)
+
+		handlers.log.Print("BreezSDK: ParseInput")
+		input, err := breez_sdk.ParseInput("satimoto@stacker.news")
+
+		if err != nil {
+			handlers.log.WithError(err).Warn("BreezSDK: ParseInput failed")
+			return
+		}
+
+		handlers.log.Printf("BreezSDK: ParseInput %#v", input)
+
 		nodeConfig := breez_sdk.NodeConfigGreenlight{
 			Config: breez_sdk.GreenlightNodeConfig{
 				PartnerCredentials: nil,
@@ -40,20 +53,7 @@ func (handlers *Handlers) connect() {
 		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "", nodeConfig)
 		config.WorkingDir = *workingDir
 
-		handlers.log.Print("BreezSDK: SetLogStream")
-		initializeLogging(handlers.log)
-
 		// TODO: this seed should be determined from the account/device.
-		handlers.log.Print("BreezSDK: ParseInput")
-		input, err := breez_sdk.ParseInput("satimoto@stacker.news")
-
-		if err != nil {
-			handlers.log.WithError(err).Warn("BreezSDK: ParseInput failed")
-			return
-		}
-
-		handlers.log.Printf("BreezSDK: ParseInput %#v", input)
-
 		handlers.log.Print("BreezSDK: MnemonicToSeed")
 		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
 		if err != nil {

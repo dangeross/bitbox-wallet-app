@@ -20,15 +20,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var logListener *BreezLogListener
-
 type BreezLogListener struct {
 	log *logrus.Entry
 }
 
 // Implementation of breez_sdk.EventListener
 // Log receives log entries of different log levels and logs then the handlers log.
-func (listener *BreezLogListener) Log(logEntry breez_sdk.LogEntry) {
+func (listener BreezLogListener) Log(logEntry breez_sdk.LogEntry) {
 	if logEntry.Level != "TRACE" {
 		listener.log.Infof("BreezSDK: [%s] %s", logEntry.Level, logEntry.Line)
 	} else {
@@ -38,11 +36,9 @@ func (listener *BreezLogListener) Log(logEntry breez_sdk.LogEntry) {
 
 // initializeLogging manages the Breez SDK logging handling by only calling SetLogStream once.
 func initializeLogging(log *logrus.Entry) {
-	if logListener == nil {
-		logListener = &BreezLogListener{log}
+	logListener := BreezLogListener{log}
 
-		if err := breez_sdk.SetLogStream(logListener); err != nil {
-			log.WithError(err).Warn("BreezSDK: SetLogStream failed")
-		}
+	if err := breez_sdk.SetLogStream(logListener); err != nil {
+		log.WithError(err).Warn("BreezSDK: SetLogStream failed")
 	}
 }

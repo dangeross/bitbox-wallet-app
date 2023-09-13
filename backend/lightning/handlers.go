@@ -60,7 +60,7 @@ func (handlers *Handlers) Init(account accounts.Interface) {
 		handlers.log.Printf("Init using account %s", config.Code)
 
 		if !config.Inactive && !config.HiddenBecauseUnused {
-			go handlers.connect()
+			handlers.connect()
 		}
 	}
 
