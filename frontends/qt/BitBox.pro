@@ -45,9 +45,9 @@ win32 {
 } else {
     QMAKE_CXXFLAGS += -std=c++11
     LIBS += -L$$PWD/server -lserver
-    #QMAKE_CXXFLAGS += $$CFORTIFY
-    #QMAKE_CXXFLAGS += $$CSTACK
-    #QMAKE_CXXFLAGS += $$CMISC
+    QMAKE_CXXFLAGS += $$CFORTIFY
+    QMAKE_CXXFLAGS += $$CSTACK
+    QMAKE_CXXFLAGS += $$CMISC
 }
 
 # https://stackoverflow.com/questions/18462420/how-to-specify-mac-platform-in-qmake-qtcreator

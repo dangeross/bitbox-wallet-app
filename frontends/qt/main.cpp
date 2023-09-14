@@ -32,12 +32,6 @@
 #include <QSystemTrayIcon>
 #include <QMessageBox>
 #include <QtGlobal>
-#include <QFile>
-#include <QDir>
-#include <QScopedPointer>
-#include <QTextStream>
-#include <QDateTime>
-#include <QDebug>
 
 #if defined(_WIN32)
 #include <QtPlatformHeaders/QWindowsWindowFunctions>
@@ -184,19 +178,10 @@ public:
     }
 };
 
-QScopedPointer<QFile> m_logFile;
-
-void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
-
 int main(int argc, char *argv[])
 {
     // Enable auto HiDPI scaling to correctly manage scale factor on bigger screens
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-
-    // Log
-    m_logFile.reset(new QFile(QCoreApplication::applicationDirPath() + QDir::separator() + "log.txt"));
-    m_logFile.data()->open(QFile::Append | QFile::Text);
-    qInstallMessageHandler(messageHandler);
 
     // Make `@media (prefers-color-scheme: light/dark)` CSS rules work.
     // See https://github.com/qutebrowser/qutebrowser/issues/5915#issuecomment-737115530
@@ -210,6 +195,11 @@ int main(int argc, char *argv[])
     qputenv("QV4_FORCE_INTERPRETER", "1");
     qputenv("DRAW_USE_LLVM", "0");
 #endif
+
+    qputenv("QT_LOGGING_TO_CONSOLE", "1");
+    qputenv("QT_LOGGING_RULES", "");
+    qputenv("QT_NO_DEBUG_OUTPUT", "0");
+    qputenv("QT_LOGGING_DEBUG", "1");
 
 // The QtWebEngine may make a clone3 syscall introduced in glibc v2.34.
 // The syscall is missing from the Chromium sandbox whitelist in Qt versions 5.15.2
@@ -418,25 +408,4 @@ int main(int argc, char *argv[])
     }
 
     return a.exec();
-}
-
-// The implementation of the handler
-void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-    // Open stream file writes
-    QTextStream out(m_logFile.data());
-    // Write the date of recording
-    out << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz ");
-    // By type determine to what level belongs message
-    switch (type)
-    {
-    case QtInfoMsg:     out << "INF "; break;
-    case QtDebugMsg:    out << "DBG "; break;
-    case QtWarningMsg:  out << "WRN "; break;
-    case QtCriticalMsg: out << "CRT "; break;
-    case QtFatalMsg:    out << "FTL "; break;
-    }
-    // Write to the output category of the message and the message itself
-    out << context.category << ": " << msg << endl;
-    out.flush();    // Clear the buffered data
 }
