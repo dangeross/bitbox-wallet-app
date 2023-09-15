@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-export const debug = process.env.NODE_ENV === 'development';
+export const debug = true; //process.env.NODE_ENV === 'development';
 
 /**
  * Returns whether the code is running in QtWebEngine.
