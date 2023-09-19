@@ -16,6 +16,7 @@ set -e
 
 mkdir -p build
 bash ./genassets.sh
+cmd "/C pre_make_windows.bat"
 make -C server/ windows-legacy
 env -u MAKE -u MAKEFLAGS cmd "/C compile_windows.bat"
 cp build/assets.rcc build/windows/
