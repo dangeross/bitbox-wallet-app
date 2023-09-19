@@ -24,6 +24,14 @@ func (handlers *Handlers) connect() {
 	if handlers.sdkService == nil {
 		initializeLogging(handlers.log)
 
+		handlers.log.Print("BreezSDK: ParseInput start")
+		_, err := breez_sdk.ParseInput("satimoto@stacker.news")
+		handlers.log.Print("BreezSDK: ParseInput end")
+
+		if err != nil {
+			handlers.log.WithError(err).Warn("BreezSDK: ParseInput failed")
+		}
+
 		// TODO: this seed should be determined from the account/device.
 		seed, err := breez_sdk.MnemonicToSeed("cruise clever syrup coil cute execute laundry general cover prevent law sheriff")
 
@@ -46,7 +54,7 @@ func (handlers *Handlers) connect() {
 			return
 		}
 
-		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "", nodeConfig)
+		config := breez_sdk.DefaultConfig(breez_sdk.EnvironmentTypeStaging, "API KEY", nodeConfig)
 		config.WorkingDir = *workingDir
 		sdkService, err := breez_sdk.Connect(config, seed, handlers)
 
@@ -62,6 +70,7 @@ func (handlers *Handlers) connect() {
 // disconnect closes an active Breez SDK instance.
 func (handlers *Handlers) disconnect() {
 	if handlers.sdkService != nil {
+		handlers.log.Print("BreezSDK: disconnect")
 		if err := handlers.sdkService.Disconnect(); err != nil {
 			handlers.log.WithError(err).Warn("BreezSDK: Error disconnecting SDK")
 		}
