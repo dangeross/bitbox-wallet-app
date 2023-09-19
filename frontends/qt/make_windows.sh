@@ -14,7 +14,7 @@
 
 set -e
 
-mkdir -p build
+mkdir -p build/windows
 bash ./genassets.sh
 cmd "/C pre_make_windows.bat"
 make -C server/ windows-legacy
