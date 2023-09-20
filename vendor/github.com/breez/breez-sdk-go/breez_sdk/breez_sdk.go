@@ -458,9 +458,9 @@ func rustCallWithError[U any](converter bufLifter[error], callback func(*C.RustC
 		// with the message.  but if that code panics, then it just sends back
 		// an empty buffer.
 		if status.errorBuf.len > 0 {
-			panic(fmt.Errorf("%s", FfiConverterstringINSTANCE.lift(status.errorBuf)))
+			return returnValue, fmt.Errorf("Panic: %s", FfiConverterstringINSTANCE.lift(status.errorBuf))
 		} else {
-			panic(fmt.Errorf("Rust panicked while handling Rust panic"))
+			return returnValue, fmt.Errorf("Rust panicked while handling Rust panic")
 		}
 	default:
 		return returnValue, fmt.Errorf("unknown status code: %d", status.code)
