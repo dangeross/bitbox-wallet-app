@@ -394,7 +394,7 @@ func (rb rustBuffer) free() {
 }
 
 type bufLifter[GoType any] interface {
-	lift(value C.RustBuffer) (GoType, error)
+	lift(value C.RustBuffer) GoType
 }
 
 type bufLowerer[GoType any] interface {
@@ -402,12 +402,12 @@ type bufLowerer[GoType any] interface {
 }
 
 type ffiConverter[GoType any, FfiType any] interface {
-	lift(value FfiType) (GoType, error)
+	lift(value FfiType) GoType
 	lower(value GoType) FfiType
 }
 
 type bufReader[GoType any] interface {
-	read(reader io.Reader) (GoType, error)
+	read(reader io.Reader) GoType
 }
 
 type bufWriter[GoType any] interface {
@@ -433,20 +433,16 @@ func lowerIntoRustBuffer[GoType any](bufWriter bufWriter[GoType], value GoType) 
 	return stringToCRustBuffer(string(bytes))
 }
 
-func liftFromRustBuffer[GoType any](bufReader bufReader[GoType], rbuf rustBuffer) (GoType, error) {
+func liftFromRustBuffer[GoType any](bufReader bufReader[GoType], rbuf rustBuffer) GoType {
 	defer rbuf.free()
-	var _uniffiDefaultValue GoType
 	reader := rbuf.asReader()
-	item, err := bufReader.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+	item := bufReader.read(reader)
 	if reader.Len() > 0 {
 		// TODO: Remove this
 		leftover, _ := io.ReadAll(reader)
-		return _uniffiDefaultValue, fmt.Errorf("junk remaining in buffer after lifting: %s", string(leftover))
+		panic(fmt.Errorf("Junk remaining in buffer after lifting: %s", string(leftover)))
 	}
-	return item, nil
+	return item
 }
 
 func rustCallWithError[U any](converter bufLifter[error], callback func(*C.RustCallStatus) U) (U, error) {
@@ -456,23 +452,15 @@ func rustCallWithError[U any](converter bufLifter[error], callback func(*C.RustC
 	case 0:
 		return returnValue, nil
 	case 1:
-		liftedErr, err := converter.lift(status.errorBuf)
-		if err != nil {
-			return returnValue, fmt.Errorf("lifting Error: %s", err)
-		}
-		return returnValue, liftedErr
+		return returnValue, converter.lift(status.errorBuf)
 	case 2:
 		// when the rust code sees a panic, it tries to construct a rustbuffer
 		// with the message.  but if that code panics, then it just sends back
 		// an empty buffer.
 		if status.errorBuf.len > 0 {
-			liftedErr, err := FfiConverterstringINSTANCE.lift(status.errorBuf)
-			if err != nil {
-				return returnValue, fmt.Errorf("panic Error: %s", err)
-			}
-			return returnValue, fmt.Errorf("panic: %s", liftedErr)
+			panic(fmt.Errorf("%s", FfiConverterstringINSTANCE.lift(status.errorBuf)))
 		} else {
-			return returnValue, fmt.Errorf("rust panicked while handling Rust panic")
+			panic(fmt.Errorf("Rust panicked while handling Rust panic"))
 		}
 	default:
 		return returnValue, fmt.Errorf("unknown status code: %d", status.code)
@@ -547,84 +535,84 @@ func writeFloat64(writer io.Writer, value float64) {
 	}
 }
 
-func readInt8(reader io.Reader) (int8, error) {
+func readInt8(reader io.Reader) int8 {
 	var result int8
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readUint8(reader io.Reader) (uint8, error) {
+func readUint8(reader io.Reader) uint8 {
 	var result uint8
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readInt16(reader io.Reader) (int16, error) {
+func readInt16(reader io.Reader) int16 {
 	var result int16
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readUint16(reader io.Reader) (uint16, error) {
+func readUint16(reader io.Reader) uint16 {
 	var result uint16
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readInt32(reader io.Reader) (int32, error) {
+func readInt32(reader io.Reader) int32 {
 	var result int32
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readUint32(reader io.Reader) (uint32, error) {
+func readUint32(reader io.Reader) uint32 {
 	var result uint32
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readInt64(reader io.Reader) (int64, error) {
+func readInt64(reader io.Reader) int64 {
 	var result int64
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readUint64(reader io.Reader) (uint64, error) {
+func readUint64(reader io.Reader) uint64 {
 	var result uint64
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readFloat32(reader io.Reader) (float32, error) {
+func readFloat32(reader io.Reader) float32 {
 	var result float32
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
-func readFloat64(reader io.Reader) (float64, error) {
+func readFloat64(reader io.Reader) float64 {
 	var result float64
 	if err := binary.Read(reader, binary.BigEndian, &result); err != nil {
-		return result, err
+		panic(err)
 	}
-	return result, nil
+	return result
 }
 
 func init() {
@@ -649,7 +637,7 @@ func (FfiConverteruint8) lift(value C.uint8_t) uint8 {
 	return uint8(value)
 }
 
-func (FfiConverteruint8) read(reader io.Reader) (uint8, error) {
+func (FfiConverteruint8) read(reader io.Reader) uint8 {
 	return readUint8(reader)
 }
 
@@ -673,7 +661,7 @@ func (FfiConverteruint16) lift(value C.uint16_t) uint16 {
 	return uint16(value)
 }
 
-func (FfiConverteruint16) read(reader io.Reader) (uint16, error) {
+func (FfiConverteruint16) read(reader io.Reader) uint16 {
 	return readUint16(reader)
 }
 
@@ -697,7 +685,7 @@ func (FfiConverteruint32) lift(value C.uint32_t) uint32 {
 	return uint32(value)
 }
 
-func (FfiConverteruint32) read(reader io.Reader) (uint32, error) {
+func (FfiConverteruint32) read(reader io.Reader) uint32 {
 	return readUint32(reader)
 }
 
@@ -721,7 +709,7 @@ func (FfiConverterint32) lift(value C.int32_t) int32 {
 	return int32(value)
 }
 
-func (FfiConverterint32) read(reader io.Reader) (int32, error) {
+func (FfiConverterint32) read(reader io.Reader) int32 {
 	return readInt32(reader)
 }
 
@@ -745,7 +733,7 @@ func (FfiConverteruint64) lift(value C.uint64_t) uint64 {
 	return uint64(value)
 }
 
-func (FfiConverteruint64) read(reader io.Reader) (uint64, error) {
+func (FfiConverteruint64) read(reader io.Reader) uint64 {
 	return readUint64(reader)
 }
 
@@ -769,7 +757,7 @@ func (FfiConverterint64) lift(value C.int64_t) int64 {
 	return int64(value)
 }
 
-func (FfiConverterint64) read(reader io.Reader) (int64, error) {
+func (FfiConverterint64) read(reader io.Reader) int64 {
 	return readInt64(reader)
 }
 
@@ -793,7 +781,7 @@ func (FfiConverterfloat64) lift(value C.double) float64 {
 	return float64(value)
 }
 
-func (FfiConverterfloat64) read(reader io.Reader) (float64, error) {
+func (FfiConverterfloat64) read(reader io.Reader) float64 {
 	return readFloat64(reader)
 }
 
@@ -824,13 +812,8 @@ func (FfiConverterbool) lift(value C.int8_t) bool {
 	return value != 0
 }
 
-func (FfiConverterbool) read(reader io.Reader) (bool, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		var _uniffiDefaultValue bool
-		return _uniffiDefaultValue, err
-	}
-	return readValue != 0, nil
+func (FfiConverterbool) read(reader io.Reader) bool {
+	return readInt8(reader) != 0
 }
 
 type FfiDestroyerbool struct{}
@@ -841,31 +824,29 @@ type FfiConverterstring struct{}
 
 var FfiConverterstringINSTANCE = FfiConverterstring{}
 
-func (FfiConverterstring) lift(cRustBuf C.RustBuffer) (string, error) {
-	reader := fromCRustBuffer(cRustBuf).asReader()
+func (FfiConverterstring) lift(cRustBuf C.RustBuffer) string {
+	rustBuf := fromCRustBuffer(cRustBuf)
+	defer rustBuf.free()
+
+	reader := rustBuf.asReader()
 	b, err := io.ReadAll(reader)
 	if err != nil {
-		var _uniffiDefaultValue string
-		return _uniffiDefaultValue, fmt.Errorf("reading reader: %w", err)
+		panic(fmt.Errorf("reading reader: %w", err))
 	}
-	return string(b), nil
+	return string(b)
 }
 
-func (FfiConverterstring) read(reader io.Reader) (string, error) {
-	var _uniffiDefaultValue string
-	length, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterstring) read(reader io.Reader) string {
+	length := readInt32(reader)
 	buffer := make([]byte, length)
 	read_length, err := reader.Read(buffer)
 	if err != nil {
-		return _uniffiDefaultValue, err
+		panic(err)
 	}
 	if read_length != int(length) {
-		return _uniffiDefaultValue, fmt.Errorf("bad read length when reading string, expected %d, read %d", length, read_length)
+		panic(fmt.Errorf("bad read length when reading string, expected %d, read %d", length, read_length))
 	}
-	return string(buffer), nil
+	return string(buffer)
 }
 
 func (FfiConverterstring) lower(value string) C.RustBuffer {
@@ -970,15 +951,11 @@ func (_self *BlockingBreezServices) SendPayment(bolt11 string, amountSats *uint6
 		return C.breez_sdk_d634_BlockingBreezServices_send_payment(
 			_pointer, FfiConverterstringINSTANCE.lower(bolt11), FfiConverterOptionaluint64INSTANCE.lower(amountSats), _uniffiStatus)
 	})
-	var _uniffiDefaultValue Payment
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue Payment
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypePaymentINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypePaymentINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -990,15 +967,11 @@ func (_self *BlockingBreezServices) SendSpontaneousPayment(nodeId string, amount
 		return C.breez_sdk_d634_BlockingBreezServices_send_spontaneous_payment(
 			_pointer, FfiConverterstringINSTANCE.lower(nodeId), FfiConverteruint64INSTANCE.lower(amountSats), _uniffiStatus)
 	})
-	var _uniffiDefaultValue Payment
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue Payment
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypePaymentINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypePaymentINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1010,15 +983,11 @@ func (_self *BlockingBreezServices) ReceivePayment(reqData ReceivePaymentRequest
 		return C.breez_sdk_d634_BlockingBreezServices_receive_payment(
 			_pointer, FfiConverterTypeReceivePaymentRequestINSTANCE.lower(reqData), _uniffiStatus)
 	})
-	var _uniffiDefaultValue ReceivePaymentResponse
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue ReceivePaymentResponse
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeReceivePaymentResponseINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeReceivePaymentResponseINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1030,15 +999,11 @@ func (_self *BlockingBreezServices) PayLnurl(reqData LnUrlPayRequestData, amount
 		return C.breez_sdk_d634_BlockingBreezServices_pay_lnurl(
 			_pointer, FfiConverterTypeLnUrlPayRequestDataINSTANCE.lower(reqData), FfiConverteruint64INSTANCE.lower(amountSats), FfiConverterOptionalstringINSTANCE.lower(comment), _uniffiStatus)
 	})
-	var _uniffiDefaultValue LnUrlPayResult
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue LnUrlPayResult
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeLnUrlPayResultINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeLnUrlPayResultINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1050,15 +1015,11 @@ func (_self *BlockingBreezServices) WithdrawLnurl(reqData LnUrlWithdrawRequestDa
 		return C.breez_sdk_d634_BlockingBreezServices_withdraw_lnurl(
 			_pointer, FfiConverterTypeLnUrlWithdrawRequestDataINSTANCE.lower(reqData), FfiConverteruint64INSTANCE.lower(amountSats), FfiConverterOptionalstringINSTANCE.lower(description), _uniffiStatus)
 	})
-	var _uniffiDefaultValue LnUrlCallbackStatus
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue LnUrlCallbackStatus
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeLnUrlCallbackStatusINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeLnUrlCallbackStatusINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1070,15 +1031,11 @@ func (_self *BlockingBreezServices) LnurlAuth(reqData LnUrlAuthRequestData) (LnU
 		return C.breez_sdk_d634_BlockingBreezServices_lnurl_auth(
 			_pointer, FfiConverterTypeLnUrlAuthRequestDataINSTANCE.lower(reqData), _uniffiStatus)
 	})
-	var _uniffiDefaultValue LnUrlCallbackStatus
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue LnUrlCallbackStatus
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeLnUrlCallbackStatusINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeLnUrlCallbackStatusINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1090,15 +1047,11 @@ func (_self *BlockingBreezServices) NodeInfo() (NodeState, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_node_info(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue NodeState
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue NodeState
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeNodeStateINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeNodeStateINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1110,15 +1063,11 @@ func (_self *BlockingBreezServices) SignMessage(request SignMessageRequest) (Sig
 		return C.breez_sdk_d634_BlockingBreezServices_sign_message(
 			_pointer, FfiConverterTypeSignMessageRequestINSTANCE.lower(request), _uniffiStatus)
 	})
-	var _uniffiDefaultValue SignMessageResponse
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue SignMessageResponse
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeSignMessageResponseINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeSignMessageResponseINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1130,15 +1079,11 @@ func (_self *BlockingBreezServices) CheckMessage(request CheckMessageRequest) (C
 		return C.breez_sdk_d634_BlockingBreezServices_check_message(
 			_pointer, FfiConverterTypeCheckMessageRequestINSTANCE.lower(request), _uniffiStatus)
 	})
-	var _uniffiDefaultValue CheckMessageResponse
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue CheckMessageResponse
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeCheckMessageResponseINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeCheckMessageResponseINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1150,15 +1095,11 @@ func (_self *BlockingBreezServices) BackupStatus() (BackupStatus, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_backup_status(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue BackupStatus
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue BackupStatus
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeBackupStatusINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeBackupStatusINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1182,15 +1123,11 @@ func (_self *BlockingBreezServices) PaymentByHash(hash string) (*Payment, error)
 		return C.breez_sdk_d634_BlockingBreezServices_payment_by_hash(
 			_pointer, FfiConverterstringINSTANCE.lower(hash), _uniffiStatus)
 	})
-	var _uniffiDefaultValue *Payment
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue *Payment
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterOptionalTypePaymentINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterOptionalTypePaymentINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1202,15 +1139,11 @@ func (_self *BlockingBreezServices) ListPayments(filter PaymentTypeFilter, fromT
 		return C.breez_sdk_d634_BlockingBreezServices_list_payments(
 			_pointer, FfiConverterTypePaymentTypeFilterINSTANCE.lower(filter), FfiConverterOptionalint64INSTANCE.lower(fromTimestamp), FfiConverterOptionalint64INSTANCE.lower(toTimestamp), _uniffiStatus)
 	})
-	var _uniffiDefaultValue []Payment
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []Payment
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypePaymentINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypePaymentINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1234,15 +1167,11 @@ func (_self *BlockingBreezServices) FetchFiatRates() ([]Rate, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_fetch_fiat_rates(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue []Rate
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []Rate
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypeRateINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypeRateINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1254,15 +1183,11 @@ func (_self *BlockingBreezServices) ListFiatCurrencies() ([]FiatCurrency, error)
 		return C.breez_sdk_d634_BlockingBreezServices_list_fiat_currencies(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue []FiatCurrency
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []FiatCurrency
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypeFiatCurrencyINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypeFiatCurrencyINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1274,15 +1199,11 @@ func (_self *BlockingBreezServices) ListLsps() ([]LspInformation, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_list_lsps(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue []LspInformation
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []LspInformation
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypeLspInformationINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypeLspInformationINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1306,15 +1227,11 @@ func (_self *BlockingBreezServices) FetchLspInfo(lspId string) (*LspInformation,
 		return C.breez_sdk_d634_BlockingBreezServices_fetch_lsp_info(
 			_pointer, FfiConverterstringINSTANCE.lower(lspId), _uniffiStatus)
 	})
-	var _uniffiDefaultValue *LspInformation
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue *LspInformation
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterOptionalTypeLspInformationINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterOptionalTypeLspInformationINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1326,15 +1243,11 @@ func (_self *BlockingBreezServices) OpenChannelFee(req OpenChannelFeeRequest) (O
 		return C.breez_sdk_d634_BlockingBreezServices_open_channel_fee(
 			_pointer, FfiConverterTypeOpenChannelFeeRequestINSTANCE.lower(req), _uniffiStatus)
 	})
-	var _uniffiDefaultValue OpenChannelFeeResponse
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue OpenChannelFeeResponse
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeOpenChannelFeeResponseINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeOpenChannelFeeResponseINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1346,15 +1259,11 @@ func (_self *BlockingBreezServices) LspId() (*string, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_lsp_id(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue *string
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue *string
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterOptionalstringINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterOptionalstringINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1366,15 +1275,11 @@ func (_self *BlockingBreezServices) LspInfo() (LspInformation, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_lsp_info(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue LspInformation
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue LspInformation
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeLspInformationINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeLspInformationINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1398,15 +1303,11 @@ func (_self *BlockingBreezServices) ReceiveOnchain(req ReceiveOnchainRequest) (S
 		return C.breez_sdk_d634_BlockingBreezServices_receive_onchain(
 			_pointer, FfiConverterTypeReceiveOnchainRequestINSTANCE.lower(req), _uniffiStatus)
 	})
-	var _uniffiDefaultValue SwapInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue SwapInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeSwapInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeSwapInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1418,15 +1319,11 @@ func (_self *BlockingBreezServices) InProgressSwap() (*SwapInfo, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_in_progress_swap(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue *SwapInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue *SwapInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterOptionalTypeSwapInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterOptionalTypeSwapInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1438,15 +1335,11 @@ func (_self *BlockingBreezServices) ListRefundables() ([]SwapInfo, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_list_refundables(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue []SwapInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []SwapInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypeSwapInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypeSwapInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1458,15 +1351,11 @@ func (_self *BlockingBreezServices) Refund(swapAddress string, toAddress string,
 		return C.breez_sdk_d634_BlockingBreezServices_refund(
 			_pointer, FfiConverterstringINSTANCE.lower(swapAddress), FfiConverterstringINSTANCE.lower(toAddress), FfiConverteruint32INSTANCE.lower(satPerVbyte), _uniffiStatus)
 	})
-	var _uniffiDefaultValue string
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterstringINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterstringINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1478,15 +1367,11 @@ func (_self *BlockingBreezServices) FetchReverseSwapFees(req ReverseSwapFeesRequ
 		return C.breez_sdk_d634_BlockingBreezServices_fetch_reverse_swap_fees(
 			_pointer, FfiConverterTypeReverseSwapFeesRequestINSTANCE.lower(req), _uniffiStatus)
 	})
-	var _uniffiDefaultValue ReverseSwapPairInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue ReverseSwapPairInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeReverseSwapPairInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeReverseSwapPairInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1498,15 +1383,11 @@ func (_self *BlockingBreezServices) InProgressReverseSwaps() ([]ReverseSwapInfo,
 		return C.breez_sdk_d634_BlockingBreezServices_in_progress_reverse_swaps(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue []ReverseSwapInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []ReverseSwapInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceTypeReverseSwapInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceTypeReverseSwapInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1518,15 +1399,11 @@ func (_self *BlockingBreezServices) SendOnchain(amountSat uint64, onchainRecipie
 		return C.breez_sdk_d634_BlockingBreezServices_send_onchain(
 			_pointer, FfiConverteruint64INSTANCE.lower(amountSat), FfiConverterstringINSTANCE.lower(onchainRecipientAddress), FfiConverterstringINSTANCE.lower(pairHash), FfiConverteruint64INSTANCE.lower(satPerVbyte), _uniffiStatus)
 	})
-	var _uniffiDefaultValue ReverseSwapInfo
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue ReverseSwapInfo
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeReverseSwapInfoINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeReverseSwapInfoINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1538,15 +1415,11 @@ func (_self *BlockingBreezServices) ExecuteDevCommand(command string) (string, e
 		return C.breez_sdk_d634_BlockingBreezServices_execute_dev_command(
 			_pointer, FfiConverterstringINSTANCE.lower(command), _uniffiStatus)
 	})
-	var _uniffiDefaultValue string
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterstringINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterstringINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1570,15 +1443,11 @@ func (_self *BlockingBreezServices) RecommendedFees() (RecommendedFees, error) {
 		return C.breez_sdk_d634_BlockingBreezServices_recommended_fees(
 			_pointer, _uniffiStatus)
 	})
-	var _uniffiDefaultValue RecommendedFees
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue RecommendedFees
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeRecommendedFeesINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeRecommendedFeesINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1590,15 +1459,11 @@ func (_self *BlockingBreezServices) BuyBitcoin(req BuyBitcoinRequest) (BuyBitcoi
 		return C.breez_sdk_d634_BlockingBreezServices_buy_bitcoin(
 			_pointer, FfiConverterTypeBuyBitcoinRequestINSTANCE.lower(req), _uniffiStatus)
 	})
-	var _uniffiDefaultValue BuyBitcoinResponse
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue BuyBitcoinResponse
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeBuyBitcoinResponseINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeBuyBitcoinResponseINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -1612,7 +1477,7 @@ type FfiConverterBlockingBreezServices struct{}
 
 var FfiConverterBlockingBreezServicesINSTANCE = FfiConverterBlockingBreezServices{}
 
-func (c FfiConverterBlockingBreezServices) lift(pointer unsafe.Pointer) (*BlockingBreezServices, error) {
+func (c FfiConverterBlockingBreezServices) lift(pointer unsafe.Pointer) *BlockingBreezServices {
 	result := &BlockingBreezServices{
 		newFfiObject(
 			pointer,
@@ -1621,16 +1486,11 @@ func (c FfiConverterBlockingBreezServices) lift(pointer unsafe.Pointer) (*Blocki
 			}),
 	}
 	runtime.SetFinalizer(result, (*BlockingBreezServices).Destroy)
-	return result, nil
+	return result
 }
 
-func (c FfiConverterBlockingBreezServices) read(reader io.Reader) (*BlockingBreezServices, error) {
-	readValue, err := readUint64(reader)
-	if err != nil {
-		var _uniffiDefaultValue *BlockingBreezServices
-		return _uniffiDefaultValue, err
-	}
-	return c.lift(unsafe.Pointer(uintptr(readValue)))
+func (c FfiConverterBlockingBreezServices) read(reader io.Reader) *BlockingBreezServices {
+	return c.lift(unsafe.Pointer(uintptr(readUint64(reader))))
 }
 
 func (c FfiConverterBlockingBreezServices) lower(value *BlockingBreezServices) unsafe.Pointer {
@@ -1648,7 +1508,7 @@ func (c FfiConverterBlockingBreezServices) write(writer io.Writer, value *Blocki
 
 type FfiDestroyerBlockingBreezServices struct{}
 
-func (FfiDestroyerBlockingBreezServices) destroy(value *BlockingBreezServices) {
+func (_ FfiDestroyerBlockingBreezServices) destroy(value *BlockingBreezServices) {
 	value.Destroy()
 }
 
@@ -1666,25 +1526,16 @@ type FfiConverterTypeAesSuccessActionDataDecrypted struct{}
 
 var FfiConverterTypeAesSuccessActionDataDecryptedINSTANCE = FfiConverterTypeAesSuccessActionDataDecrypted{}
 
-func (c FfiConverterTypeAesSuccessActionDataDecrypted) lift(cRustBuf C.RustBuffer) (AesSuccessActionDataDecrypted, error) {
+func (c FfiConverterTypeAesSuccessActionDataDecrypted) lift(cRustBuf C.RustBuffer) AesSuccessActionDataDecrypted {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[AesSuccessActionDataDecrypted](c, rustBuffer)
 }
 
-func (c FfiConverterTypeAesSuccessActionDataDecrypted) read(reader io.Reader) (AesSuccessActionDataDecrypted, error) {
-	var _uniffiDefaultValue AesSuccessActionDataDecrypted
-	_description, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_plaintext, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeAesSuccessActionDataDecrypted) read(reader io.Reader) AesSuccessActionDataDecrypted {
 	return AesSuccessActionDataDecrypted{
-		Description: _description,
-		Plaintext:   _plaintext,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeAesSuccessActionDataDecrypted) lower(value AesSuccessActionDataDecrypted) C.RustBuffer {
@@ -1698,7 +1549,7 @@ func (c FfiConverterTypeAesSuccessActionDataDecrypted) write(writer io.Writer, v
 
 type FfiDestroyerTypeAesSuccessActionDataDecrypted struct{}
 
-func (FfiDestroyerTypeAesSuccessActionDataDecrypted) destroy(value AesSuccessActionDataDecrypted) {
+func (_ FfiDestroyerTypeAesSuccessActionDataDecrypted) destroy(value AesSuccessActionDataDecrypted) {
 	value.Destroy()
 }
 
@@ -1714,20 +1565,15 @@ type FfiConverterTypeBackupFailedData struct{}
 
 var FfiConverterTypeBackupFailedDataINSTANCE = FfiConverterTypeBackupFailedData{}
 
-func (c FfiConverterTypeBackupFailedData) lift(cRustBuf C.RustBuffer) (BackupFailedData, error) {
+func (c FfiConverterTypeBackupFailedData) lift(cRustBuf C.RustBuffer) BackupFailedData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[BackupFailedData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeBackupFailedData) read(reader io.Reader) (BackupFailedData, error) {
-	var _uniffiDefaultValue BackupFailedData
-	_error, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeBackupFailedData) read(reader io.Reader) BackupFailedData {
 	return BackupFailedData{
-		Error: _error,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeBackupFailedData) lower(value BackupFailedData) C.RustBuffer {
@@ -1740,7 +1586,7 @@ func (c FfiConverterTypeBackupFailedData) write(writer io.Writer, value BackupFa
 
 type FfiDestroyerTypeBackupFailedData struct{}
 
-func (FfiDestroyerTypeBackupFailedData) destroy(value BackupFailedData) {
+func (_ FfiDestroyerTypeBackupFailedData) destroy(value BackupFailedData) {
 	value.Destroy()
 }
 
@@ -1758,25 +1604,16 @@ type FfiConverterTypeBackupStatus struct{}
 
 var FfiConverterTypeBackupStatusINSTANCE = FfiConverterTypeBackupStatus{}
 
-func (c FfiConverterTypeBackupStatus) lift(cRustBuf C.RustBuffer) (BackupStatus, error) {
+func (c FfiConverterTypeBackupStatus) lift(cRustBuf C.RustBuffer) BackupStatus {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[BackupStatus](c, rustBuffer)
 }
 
-func (c FfiConverterTypeBackupStatus) read(reader io.Reader) (BackupStatus, error) {
-	var _uniffiDefaultValue BackupStatus
-	_backedUp, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lastBackupTime, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeBackupStatus) read(reader io.Reader) BackupStatus {
 	return BackupStatus{
-		BackedUp:       _backedUp,
-		LastBackupTime: _lastBackupTime,
-	}, nil
+		FfiConverterboolINSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeBackupStatus) lower(value BackupStatus) C.RustBuffer {
@@ -1790,7 +1627,7 @@ func (c FfiConverterTypeBackupStatus) write(writer io.Writer, value BackupStatus
 
 type FfiDestroyerTypeBackupStatus struct{}
 
-func (FfiDestroyerTypeBackupStatus) destroy(value BackupStatus) {
+func (_ FfiDestroyerTypeBackupStatus) destroy(value BackupStatus) {
 	value.Destroy()
 }
 
@@ -1814,40 +1651,19 @@ type FfiConverterTypeBitcoinAddressData struct{}
 
 var FfiConverterTypeBitcoinAddressDataINSTANCE = FfiConverterTypeBitcoinAddressData{}
 
-func (c FfiConverterTypeBitcoinAddressData) lift(cRustBuf C.RustBuffer) (BitcoinAddressData, error) {
+func (c FfiConverterTypeBitcoinAddressData) lift(cRustBuf C.RustBuffer) BitcoinAddressData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[BitcoinAddressData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeBitcoinAddressData) read(reader io.Reader) (BitcoinAddressData, error) {
-	var _uniffiDefaultValue BitcoinAddressData
-	_address, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_network, err := FfiConverterTypeNetworkINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_amountSat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_label, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_message, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeBitcoinAddressData) read(reader io.Reader) BitcoinAddressData {
 	return BitcoinAddressData{
-		Address:   _address,
-		Network:   _network,
-		AmountSat: _amountSat,
-		Label:     _label,
-		Message:   _message,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterTypeNetworkINSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeBitcoinAddressData) lower(value BitcoinAddressData) C.RustBuffer {
@@ -1864,7 +1680,7 @@ func (c FfiConverterTypeBitcoinAddressData) write(writer io.Writer, value Bitcoi
 
 type FfiDestroyerTypeBitcoinAddressData struct{}
 
-func (FfiDestroyerTypeBitcoinAddressData) destroy(value BitcoinAddressData) {
+func (_ FfiDestroyerTypeBitcoinAddressData) destroy(value BitcoinAddressData) {
 	value.Destroy()
 }
 
@@ -1882,25 +1698,16 @@ type FfiConverterTypeBuyBitcoinRequest struct{}
 
 var FfiConverterTypeBuyBitcoinRequestINSTANCE = FfiConverterTypeBuyBitcoinRequest{}
 
-func (c FfiConverterTypeBuyBitcoinRequest) lift(cRustBuf C.RustBuffer) (BuyBitcoinRequest, error) {
+func (c FfiConverterTypeBuyBitcoinRequest) lift(cRustBuf C.RustBuffer) BuyBitcoinRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[BuyBitcoinRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeBuyBitcoinRequest) read(reader io.Reader) (BuyBitcoinRequest, error) {
-	var _uniffiDefaultValue BuyBitcoinRequest
-	_provider, err := FfiConverterTypeBuyBitcoinProviderINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeBuyBitcoinRequest) read(reader io.Reader) BuyBitcoinRequest {
 	return BuyBitcoinRequest{
-		Provider:         _provider,
-		OpeningFeeParams: _openingFeeParams,
-	}, nil
+		FfiConverterTypeBuyBitcoinProviderINSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeBuyBitcoinRequest) lower(value BuyBitcoinRequest) C.RustBuffer {
@@ -1914,7 +1721,7 @@ func (c FfiConverterTypeBuyBitcoinRequest) write(writer io.Writer, value BuyBitc
 
 type FfiDestroyerTypeBuyBitcoinRequest struct{}
 
-func (FfiDestroyerTypeBuyBitcoinRequest) destroy(value BuyBitcoinRequest) {
+func (_ FfiDestroyerTypeBuyBitcoinRequest) destroy(value BuyBitcoinRequest) {
 	value.Destroy()
 }
 
@@ -1932,25 +1739,16 @@ type FfiConverterTypeBuyBitcoinResponse struct{}
 
 var FfiConverterTypeBuyBitcoinResponseINSTANCE = FfiConverterTypeBuyBitcoinResponse{}
 
-func (c FfiConverterTypeBuyBitcoinResponse) lift(cRustBuf C.RustBuffer) (BuyBitcoinResponse, error) {
+func (c FfiConverterTypeBuyBitcoinResponse) lift(cRustBuf C.RustBuffer) BuyBitcoinResponse {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[BuyBitcoinResponse](c, rustBuffer)
 }
 
-func (c FfiConverterTypeBuyBitcoinResponse) read(reader io.Reader) (BuyBitcoinResponse, error) {
-	var _uniffiDefaultValue BuyBitcoinResponse
-	_url, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeBuyBitcoinResponse) read(reader io.Reader) BuyBitcoinResponse {
 	return BuyBitcoinResponse{
-		Url:              _url,
-		OpeningFeeParams: _openingFeeParams,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeBuyBitcoinResponse) lower(value BuyBitcoinResponse) C.RustBuffer {
@@ -1964,7 +1762,7 @@ func (c FfiConverterTypeBuyBitcoinResponse) write(writer io.Writer, value BuyBit
 
 type FfiDestroyerTypeBuyBitcoinResponse struct{}
 
-func (FfiDestroyerTypeBuyBitcoinResponse) destroy(value BuyBitcoinResponse) {
+func (_ FfiDestroyerTypeBuyBitcoinResponse) destroy(value BuyBitcoinResponse) {
 	value.Destroy()
 }
 
@@ -1984,30 +1782,17 @@ type FfiConverterTypeCheckMessageRequest struct{}
 
 var FfiConverterTypeCheckMessageRequestINSTANCE = FfiConverterTypeCheckMessageRequest{}
 
-func (c FfiConverterTypeCheckMessageRequest) lift(cRustBuf C.RustBuffer) (CheckMessageRequest, error) {
+func (c FfiConverterTypeCheckMessageRequest) lift(cRustBuf C.RustBuffer) CheckMessageRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[CheckMessageRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeCheckMessageRequest) read(reader io.Reader) (CheckMessageRequest, error) {
-	var _uniffiDefaultValue CheckMessageRequest
-	_message, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_pubkey, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_signature, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeCheckMessageRequest) read(reader io.Reader) CheckMessageRequest {
 	return CheckMessageRequest{
-		Message:   _message,
-		Pubkey:    _pubkey,
-		Signature: _signature,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeCheckMessageRequest) lower(value CheckMessageRequest) C.RustBuffer {
@@ -2022,7 +1807,7 @@ func (c FfiConverterTypeCheckMessageRequest) write(writer io.Writer, value Check
 
 type FfiDestroyerTypeCheckMessageRequest struct{}
 
-func (FfiDestroyerTypeCheckMessageRequest) destroy(value CheckMessageRequest) {
+func (_ FfiDestroyerTypeCheckMessageRequest) destroy(value CheckMessageRequest) {
 	value.Destroy()
 }
 
@@ -2038,20 +1823,15 @@ type FfiConverterTypeCheckMessageResponse struct{}
 
 var FfiConverterTypeCheckMessageResponseINSTANCE = FfiConverterTypeCheckMessageResponse{}
 
-func (c FfiConverterTypeCheckMessageResponse) lift(cRustBuf C.RustBuffer) (CheckMessageResponse, error) {
+func (c FfiConverterTypeCheckMessageResponse) lift(cRustBuf C.RustBuffer) CheckMessageResponse {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[CheckMessageResponse](c, rustBuffer)
 }
 
-func (c FfiConverterTypeCheckMessageResponse) read(reader io.Reader) (CheckMessageResponse, error) {
-	var _uniffiDefaultValue CheckMessageResponse
-	_isValid, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeCheckMessageResponse) read(reader io.Reader) CheckMessageResponse {
 	return CheckMessageResponse{
-		IsValid: _isValid,
-	}, nil
+		FfiConverterboolINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeCheckMessageResponse) lower(value CheckMessageResponse) C.RustBuffer {
@@ -2064,7 +1844,7 @@ func (c FfiConverterTypeCheckMessageResponse) write(writer io.Writer, value Chec
 
 type FfiDestroyerTypeCheckMessageResponse struct{}
 
-func (FfiDestroyerTypeCheckMessageResponse) destroy(value CheckMessageResponse) {
+func (_ FfiDestroyerTypeCheckMessageResponse) destroy(value CheckMessageResponse) {
 	value.Destroy()
 }
 
@@ -2084,30 +1864,17 @@ type FfiConverterTypeClosedChannelPaymentDetails struct{}
 
 var FfiConverterTypeClosedChannelPaymentDetailsINSTANCE = FfiConverterTypeClosedChannelPaymentDetails{}
 
-func (c FfiConverterTypeClosedChannelPaymentDetails) lift(cRustBuf C.RustBuffer) (ClosedChannelPaymentDetails, error) {
+func (c FfiConverterTypeClosedChannelPaymentDetails) lift(cRustBuf C.RustBuffer) ClosedChannelPaymentDetails {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ClosedChannelPaymentDetails](c, rustBuffer)
 }
 
-func (c FfiConverterTypeClosedChannelPaymentDetails) read(reader io.Reader) (ClosedChannelPaymentDetails, error) {
-	var _uniffiDefaultValue ClosedChannelPaymentDetails
-	_shortChannelId, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_state, err := FfiConverterTypeChannelStateINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_fundingTxid, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeClosedChannelPaymentDetails) read(reader io.Reader) ClosedChannelPaymentDetails {
 	return ClosedChannelPaymentDetails{
-		ShortChannelId: _shortChannelId,
-		State:          _state,
-		FundingTxid:    _fundingTxid,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterTypeChannelStateINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeClosedChannelPaymentDetails) lower(value ClosedChannelPaymentDetails) C.RustBuffer {
@@ -2122,7 +1889,7 @@ func (c FfiConverterTypeClosedChannelPaymentDetails) write(writer io.Writer, val
 
 type FfiDestroyerTypeClosedChannelPaymentDetails struct{}
 
-func (FfiDestroyerTypeClosedChannelPaymentDetails) destroy(value ClosedChannelPaymentDetails) {
+func (_ FfiDestroyerTypeClosedChannelPaymentDetails) destroy(value ClosedChannelPaymentDetails) {
 	value.Destroy()
 }
 
@@ -2154,60 +1921,23 @@ type FfiConverterTypeConfig struct{}
 
 var FfiConverterTypeConfigINSTANCE = FfiConverterTypeConfig{}
 
-func (c FfiConverterTypeConfig) lift(cRustBuf C.RustBuffer) (Config, error) {
+func (c FfiConverterTypeConfig) lift(cRustBuf C.RustBuffer) Config {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[Config](c, rustBuffer)
 }
 
-func (c FfiConverterTypeConfig) read(reader io.Reader) (Config, error) {
-	var _uniffiDefaultValue Config
-	_breezserver, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_mempoolspaceUrl, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_workingDir, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_network, err := FfiConverterTypeNetworkINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentTimeoutSec, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_defaultLspId, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_apiKey, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxfeePercent, err := FfiConverterfloat64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_nodeConfig, err := FfiConverterTypeNodeConfigINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeConfig) read(reader io.Reader) Config {
 	return Config{
-		Breezserver:       _breezserver,
-		MempoolspaceUrl:   _mempoolspaceUrl,
-		WorkingDir:        _workingDir,
-		Network:           _network,
-		PaymentTimeoutSec: _paymentTimeoutSec,
-		DefaultLspId:      _defaultLspId,
-		ApiKey:            _apiKey,
-		MaxfeePercent:     _maxfeePercent,
-		NodeConfig:        _nodeConfig,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterTypeNetworkINSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterfloat64INSTANCE.read(reader),
+		FfiConverterTypeNodeConfigINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeConfig) lower(value Config) C.RustBuffer {
@@ -2228,7 +1958,7 @@ func (c FfiConverterTypeConfig) write(writer io.Writer, value Config) {
 
 type FfiDestroyerTypeConfig struct{}
 
-func (FfiDestroyerTypeConfig) destroy(value Config) {
+func (_ FfiDestroyerTypeConfig) destroy(value Config) {
 	value.Destroy()
 }
 
@@ -2256,50 +1986,21 @@ type FfiConverterTypeCurrencyInfo struct{}
 
 var FfiConverterTypeCurrencyInfoINSTANCE = FfiConverterTypeCurrencyInfo{}
 
-func (c FfiConverterTypeCurrencyInfo) lift(cRustBuf C.RustBuffer) (CurrencyInfo, error) {
+func (c FfiConverterTypeCurrencyInfo) lift(cRustBuf C.RustBuffer) CurrencyInfo {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[CurrencyInfo](c, rustBuffer)
 }
 
-func (c FfiConverterTypeCurrencyInfo) read(reader io.Reader) (CurrencyInfo, error) {
-	var _uniffiDefaultValue CurrencyInfo
-	_name, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_fractionSize, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_spacing, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_symbol, err := FfiConverterOptionalTypeSymbolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_uniqSymbol, err := FfiConverterOptionalTypeSymbolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_localizedName, err := FfiConverterOptionalSequenceTypeLocalizedNameINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_localeOverrides, err := FfiConverterOptionalSequenceTypeLocaleOverridesINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeCurrencyInfo) read(reader io.Reader) CurrencyInfo {
 	return CurrencyInfo{
-		Name:            _name,
-		FractionSize:    _fractionSize,
-		Spacing:         _spacing,
-		Symbol:          _symbol,
-		UniqSymbol:      _uniqSymbol,
-		LocalizedName:   _localizedName,
-		LocaleOverrides: _localeOverrides,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+		FfiConverterOptionalTypeSymbolINSTANCE.read(reader),
+		FfiConverterOptionalTypeSymbolINSTANCE.read(reader),
+		FfiConverterOptionalSequenceTypeLocalizedNameINSTANCE.read(reader),
+		FfiConverterOptionalSequenceTypeLocaleOverridesINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeCurrencyInfo) lower(value CurrencyInfo) C.RustBuffer {
@@ -2318,7 +2019,7 @@ func (c FfiConverterTypeCurrencyInfo) write(writer io.Writer, value CurrencyInfo
 
 type FfiDestroyerTypeCurrencyInfo struct{}
 
-func (FfiDestroyerTypeCurrencyInfo) destroy(value CurrencyInfo) {
+func (_ FfiDestroyerTypeCurrencyInfo) destroy(value CurrencyInfo) {
 	value.Destroy()
 }
 
@@ -2336,25 +2037,16 @@ type FfiConverterTypeFiatCurrency struct{}
 
 var FfiConverterTypeFiatCurrencyINSTANCE = FfiConverterTypeFiatCurrency{}
 
-func (c FfiConverterTypeFiatCurrency) lift(cRustBuf C.RustBuffer) (FiatCurrency, error) {
+func (c FfiConverterTypeFiatCurrency) lift(cRustBuf C.RustBuffer) FiatCurrency {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[FiatCurrency](c, rustBuffer)
 }
 
-func (c FfiConverterTypeFiatCurrency) read(reader io.Reader) (FiatCurrency, error) {
-	var _uniffiDefaultValue FiatCurrency
-	_id, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_info, err := FfiConverterTypeCurrencyInfoINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeFiatCurrency) read(reader io.Reader) FiatCurrency {
 	return FiatCurrency{
-		Id:   _id,
-		Info: _info,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterTypeCurrencyInfoINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeFiatCurrency) lower(value FiatCurrency) C.RustBuffer {
@@ -2368,7 +2060,7 @@ func (c FfiConverterTypeFiatCurrency) write(writer io.Writer, value FiatCurrency
 
 type FfiDestroyerTypeFiatCurrency struct{}
 
-func (FfiDestroyerTypeFiatCurrency) destroy(value FiatCurrency) {
+func (_ FfiDestroyerTypeFiatCurrency) destroy(value FiatCurrency) {
 	value.Destroy()
 }
 
@@ -2386,25 +2078,16 @@ type FfiConverterTypeGreenlightCredentials struct{}
 
 var FfiConverterTypeGreenlightCredentialsINSTANCE = FfiConverterTypeGreenlightCredentials{}
 
-func (c FfiConverterTypeGreenlightCredentials) lift(cRustBuf C.RustBuffer) (GreenlightCredentials, error) {
+func (c FfiConverterTypeGreenlightCredentials) lift(cRustBuf C.RustBuffer) GreenlightCredentials {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[GreenlightCredentials](c, rustBuffer)
 }
 
-func (c FfiConverterTypeGreenlightCredentials) read(reader io.Reader) (GreenlightCredentials, error) {
-	var _uniffiDefaultValue GreenlightCredentials
-	_deviceKey, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_deviceCert, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeGreenlightCredentials) read(reader io.Reader) GreenlightCredentials {
 	return GreenlightCredentials{
-		DeviceKey:  _deviceKey,
-		DeviceCert: _deviceCert,
-	}, nil
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeGreenlightCredentials) lower(value GreenlightCredentials) C.RustBuffer {
@@ -2418,7 +2101,7 @@ func (c FfiConverterTypeGreenlightCredentials) write(writer io.Writer, value Gre
 
 type FfiDestroyerTypeGreenlightCredentials struct{}
 
-func (FfiDestroyerTypeGreenlightCredentials) destroy(value GreenlightCredentials) {
+func (_ FfiDestroyerTypeGreenlightCredentials) destroy(value GreenlightCredentials) {
 	value.Destroy()
 }
 
@@ -2436,25 +2119,16 @@ type FfiConverterTypeGreenlightNodeConfig struct{}
 
 var FfiConverterTypeGreenlightNodeConfigINSTANCE = FfiConverterTypeGreenlightNodeConfig{}
 
-func (c FfiConverterTypeGreenlightNodeConfig) lift(cRustBuf C.RustBuffer) (GreenlightNodeConfig, error) {
+func (c FfiConverterTypeGreenlightNodeConfig) lift(cRustBuf C.RustBuffer) GreenlightNodeConfig {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[GreenlightNodeConfig](c, rustBuffer)
 }
 
-func (c FfiConverterTypeGreenlightNodeConfig) read(reader io.Reader) (GreenlightNodeConfig, error) {
-	var _uniffiDefaultValue GreenlightNodeConfig
-	_partnerCredentials, err := FfiConverterOptionalTypeGreenlightCredentialsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_inviteCode, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeGreenlightNodeConfig) read(reader io.Reader) GreenlightNodeConfig {
 	return GreenlightNodeConfig{
-		PartnerCredentials: _partnerCredentials,
-		InviteCode:         _inviteCode,
-	}, nil
+		FfiConverterOptionalTypeGreenlightCredentialsINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeGreenlightNodeConfig) lower(value GreenlightNodeConfig) C.RustBuffer {
@@ -2468,7 +2142,7 @@ func (c FfiConverterTypeGreenlightNodeConfig) write(writer io.Writer, value Gree
 
 type FfiDestroyerTypeGreenlightNodeConfig struct{}
 
-func (FfiDestroyerTypeGreenlightNodeConfig) destroy(value GreenlightNodeConfig) {
+func (_ FfiDestroyerTypeGreenlightNodeConfig) destroy(value GreenlightNodeConfig) {
 	value.Destroy()
 }
 
@@ -2486,25 +2160,16 @@ type FfiConverterTypeInvoicePaidDetails struct{}
 
 var FfiConverterTypeInvoicePaidDetailsINSTANCE = FfiConverterTypeInvoicePaidDetails{}
 
-func (c FfiConverterTypeInvoicePaidDetails) lift(cRustBuf C.RustBuffer) (InvoicePaidDetails, error) {
+func (c FfiConverterTypeInvoicePaidDetails) lift(cRustBuf C.RustBuffer) InvoicePaidDetails {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[InvoicePaidDetails](c, rustBuffer)
 }
 
-func (c FfiConverterTypeInvoicePaidDetails) read(reader io.Reader) (InvoicePaidDetails, error) {
-	var _uniffiDefaultValue InvoicePaidDetails
-	_paymentHash, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_bolt11, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeInvoicePaidDetails) read(reader io.Reader) InvoicePaidDetails {
 	return InvoicePaidDetails{
-		PaymentHash: _paymentHash,
-		Bolt11:      _bolt11,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeInvoicePaidDetails) lower(value InvoicePaidDetails) C.RustBuffer {
@@ -2518,7 +2183,7 @@ func (c FfiConverterTypeInvoicePaidDetails) write(writer io.Writer, value Invoic
 
 type FfiDestroyerTypeInvoicePaidDetails struct{}
 
-func (FfiDestroyerTypeInvoicePaidDetails) destroy(value InvoicePaidDetails) {
+func (_ FfiDestroyerTypeInvoicePaidDetails) destroy(value InvoicePaidDetails) {
 	value.Destroy()
 }
 
@@ -2552,65 +2217,24 @@ type FfiConverterTypeLnInvoice struct{}
 
 var FfiConverterTypeLnInvoiceINSTANCE = FfiConverterTypeLnInvoice{}
 
-func (c FfiConverterTypeLnInvoice) lift(cRustBuf C.RustBuffer) (LnInvoice, error) {
+func (c FfiConverterTypeLnInvoice) lift(cRustBuf C.RustBuffer) LnInvoice {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnInvoice](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnInvoice) read(reader io.Reader) (LnInvoice, error) {
-	var _uniffiDefaultValue LnInvoice
-	_bolt11, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_payeePubkey, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentHash, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_description, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_descriptionHash, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_amountMsat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_timestamp, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_expiry, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_routingHints, err := FfiConverterSequenceTypeRouteHintINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentSecret, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnInvoice) read(reader io.Reader) LnInvoice {
 	return LnInvoice{
-		Bolt11:          _bolt11,
-		PayeePubkey:     _payeePubkey,
-		PaymentHash:     _paymentHash,
-		Description:     _description,
-		DescriptionHash: _descriptionHash,
-		AmountMsat:      _amountMsat,
-		Timestamp:       _timestamp,
-		Expiry:          _expiry,
-		RoutingHints:    _routingHints,
-		PaymentSecret:   _paymentSecret,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterSequenceTypeRouteHintINSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnInvoice) lower(value LnInvoice) C.RustBuffer {
@@ -2632,7 +2256,7 @@ func (c FfiConverterTypeLnInvoice) write(writer io.Writer, value LnInvoice) {
 
 type FfiDestroyerTypeLnInvoice struct{}
 
-func (FfiDestroyerTypeLnInvoice) destroy(value LnInvoice) {
+func (_ FfiDestroyerTypeLnInvoice) destroy(value LnInvoice) {
 	value.Destroy()
 }
 
@@ -2664,60 +2288,23 @@ type FfiConverterTypeLnPaymentDetails struct{}
 
 var FfiConverterTypeLnPaymentDetailsINSTANCE = FfiConverterTypeLnPaymentDetails{}
 
-func (c FfiConverterTypeLnPaymentDetails) lift(cRustBuf C.RustBuffer) (LnPaymentDetails, error) {
+func (c FfiConverterTypeLnPaymentDetails) lift(cRustBuf C.RustBuffer) LnPaymentDetails {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnPaymentDetails](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnPaymentDetails) read(reader io.Reader) (LnPaymentDetails, error) {
-	var _uniffiDefaultValue LnPaymentDetails
-	_paymentHash, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_label, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_destinationPubkey, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentPreimage, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_keysend, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_bolt11, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lnurlSuccessAction, err := FfiConverterOptionalTypeSuccessActionProcessedINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lnurlMetadata, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lnAddress, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnPaymentDetails) read(reader io.Reader) LnPaymentDetails {
 	return LnPaymentDetails{
-		PaymentHash:        _paymentHash,
-		Label:              _label,
-		DestinationPubkey:  _destinationPubkey,
-		PaymentPreimage:    _paymentPreimage,
-		Keysend:            _keysend,
-		Bolt11:             _bolt11,
-		LnurlSuccessAction: _lnurlSuccessAction,
-		LnurlMetadata:      _lnurlMetadata,
-		LnAddress:          _lnAddress,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterboolINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalTypeSuccessActionProcessedINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnPaymentDetails) lower(value LnPaymentDetails) C.RustBuffer {
@@ -2738,7 +2325,7 @@ func (c FfiConverterTypeLnPaymentDetails) write(writer io.Writer, value LnPaymen
 
 type FfiDestroyerTypeLnPaymentDetails struct{}
 
-func (FfiDestroyerTypeLnPaymentDetails) destroy(value LnPaymentDetails) {
+func (_ FfiDestroyerTypeLnPaymentDetails) destroy(value LnPaymentDetails) {
 	value.Destroy()
 }
 
@@ -2760,35 +2347,18 @@ type FfiConverterTypeLnUrlAuthRequestData struct{}
 
 var FfiConverterTypeLnUrlAuthRequestDataINSTANCE = FfiConverterTypeLnUrlAuthRequestData{}
 
-func (c FfiConverterTypeLnUrlAuthRequestData) lift(cRustBuf C.RustBuffer) (LnUrlAuthRequestData, error) {
+func (c FfiConverterTypeLnUrlAuthRequestData) lift(cRustBuf C.RustBuffer) LnUrlAuthRequestData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnUrlAuthRequestData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnUrlAuthRequestData) read(reader io.Reader) (LnUrlAuthRequestData, error) {
-	var _uniffiDefaultValue LnUrlAuthRequestData
-	_k1, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_action, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_domain, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_url, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnUrlAuthRequestData) read(reader io.Reader) LnUrlAuthRequestData {
 	return LnUrlAuthRequestData{
-		K1:     _k1,
-		Action: _action,
-		Domain: _domain,
-		Url:    _url,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnUrlAuthRequestData) lower(value LnUrlAuthRequestData) C.RustBuffer {
@@ -2804,7 +2374,7 @@ func (c FfiConverterTypeLnUrlAuthRequestData) write(writer io.Writer, value LnUr
 
 type FfiDestroyerTypeLnUrlAuthRequestData struct{}
 
-func (FfiDestroyerTypeLnUrlAuthRequestData) destroy(value LnUrlAuthRequestData) {
+func (_ FfiDestroyerTypeLnUrlAuthRequestData) destroy(value LnUrlAuthRequestData) {
 	value.Destroy()
 }
 
@@ -2820,20 +2390,15 @@ type FfiConverterTypeLnUrlErrorData struct{}
 
 var FfiConverterTypeLnUrlErrorDataINSTANCE = FfiConverterTypeLnUrlErrorData{}
 
-func (c FfiConverterTypeLnUrlErrorData) lift(cRustBuf C.RustBuffer) (LnUrlErrorData, error) {
+func (c FfiConverterTypeLnUrlErrorData) lift(cRustBuf C.RustBuffer) LnUrlErrorData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnUrlErrorData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnUrlErrorData) read(reader io.Reader) (LnUrlErrorData, error) {
-	var _uniffiDefaultValue LnUrlErrorData
-	_reason, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnUrlErrorData) read(reader io.Reader) LnUrlErrorData {
 	return LnUrlErrorData{
-		Reason: _reason,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnUrlErrorData) lower(value LnUrlErrorData) C.RustBuffer {
@@ -2846,7 +2411,7 @@ func (c FfiConverterTypeLnUrlErrorData) write(writer io.Writer, value LnUrlError
 
 type FfiDestroyerTypeLnUrlErrorData struct{}
 
-func (FfiDestroyerTypeLnUrlErrorData) destroy(value LnUrlErrorData) {
+func (_ FfiDestroyerTypeLnUrlErrorData) destroy(value LnUrlErrorData) {
 	value.Destroy()
 }
 
@@ -2874,50 +2439,21 @@ type FfiConverterTypeLnUrlPayRequestData struct{}
 
 var FfiConverterTypeLnUrlPayRequestDataINSTANCE = FfiConverterTypeLnUrlPayRequestData{}
 
-func (c FfiConverterTypeLnUrlPayRequestData) lift(cRustBuf C.RustBuffer) (LnUrlPayRequestData, error) {
+func (c FfiConverterTypeLnUrlPayRequestData) lift(cRustBuf C.RustBuffer) LnUrlPayRequestData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnUrlPayRequestData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnUrlPayRequestData) read(reader io.Reader) (LnUrlPayRequestData, error) {
-	var _uniffiDefaultValue LnUrlPayRequestData
-	_callback, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_minSendable, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxSendable, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_metadataStr, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_commentAllowed, err := FfiConverteruint16INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_domain, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lnAddress, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnUrlPayRequestData) read(reader io.Reader) LnUrlPayRequestData {
 	return LnUrlPayRequestData{
-		Callback:       _callback,
-		MinSendable:    _minSendable,
-		MaxSendable:    _maxSendable,
-		MetadataStr:    _metadataStr,
-		CommentAllowed: _commentAllowed,
-		Domain:         _domain,
-		LnAddress:      _lnAddress,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint16INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnUrlPayRequestData) lower(value LnUrlPayRequestData) C.RustBuffer {
@@ -2936,7 +2472,7 @@ func (c FfiConverterTypeLnUrlPayRequestData) write(writer io.Writer, value LnUrl
 
 type FfiDestroyerTypeLnUrlPayRequestData struct{}
 
-func (FfiDestroyerTypeLnUrlPayRequestData) destroy(value LnUrlPayRequestData) {
+func (_ FfiDestroyerTypeLnUrlPayRequestData) destroy(value LnUrlPayRequestData) {
 	value.Destroy()
 }
 
@@ -2960,40 +2496,19 @@ type FfiConverterTypeLnUrlWithdrawRequestData struct{}
 
 var FfiConverterTypeLnUrlWithdrawRequestDataINSTANCE = FfiConverterTypeLnUrlWithdrawRequestData{}
 
-func (c FfiConverterTypeLnUrlWithdrawRequestData) lift(cRustBuf C.RustBuffer) (LnUrlWithdrawRequestData, error) {
+func (c FfiConverterTypeLnUrlWithdrawRequestData) lift(cRustBuf C.RustBuffer) LnUrlWithdrawRequestData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LnUrlWithdrawRequestData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLnUrlWithdrawRequestData) read(reader io.Reader) (LnUrlWithdrawRequestData, error) {
-	var _uniffiDefaultValue LnUrlWithdrawRequestData
-	_callback, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_k1, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_defaultDescription, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_minWithdrawable, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxWithdrawable, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLnUrlWithdrawRequestData) read(reader io.Reader) LnUrlWithdrawRequestData {
 	return LnUrlWithdrawRequestData{
-		Callback:           _callback,
-		K1:                 _k1,
-		DefaultDescription: _defaultDescription,
-		MinWithdrawable:    _minWithdrawable,
-		MaxWithdrawable:    _maxWithdrawable,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLnUrlWithdrawRequestData) lower(value LnUrlWithdrawRequestData) C.RustBuffer {
@@ -3010,7 +2525,7 @@ func (c FfiConverterTypeLnUrlWithdrawRequestData) write(writer io.Writer, value 
 
 type FfiDestroyerTypeLnUrlWithdrawRequestData struct{}
 
-func (FfiDestroyerTypeLnUrlWithdrawRequestData) destroy(value LnUrlWithdrawRequestData) {
+func (_ FfiDestroyerTypeLnUrlWithdrawRequestData) destroy(value LnUrlWithdrawRequestData) {
 	value.Destroy()
 }
 
@@ -3030,30 +2545,17 @@ type FfiConverterTypeLocaleOverrides struct{}
 
 var FfiConverterTypeLocaleOverridesINSTANCE = FfiConverterTypeLocaleOverrides{}
 
-func (c FfiConverterTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) (LocaleOverrides, error) {
+func (c FfiConverterTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) LocaleOverrides {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LocaleOverrides](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLocaleOverrides) read(reader io.Reader) (LocaleOverrides, error) {
-	var _uniffiDefaultValue LocaleOverrides
-	_locale, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_spacing, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_symbol, err := FfiConverterTypeSymbolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLocaleOverrides) read(reader io.Reader) LocaleOverrides {
 	return LocaleOverrides{
-		Locale:  _locale,
-		Spacing: _spacing,
-		Symbol:  _symbol,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+		FfiConverterTypeSymbolINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLocaleOverrides) lower(value LocaleOverrides) C.RustBuffer {
@@ -3068,7 +2570,7 @@ func (c FfiConverterTypeLocaleOverrides) write(writer io.Writer, value LocaleOve
 
 type FfiDestroyerTypeLocaleOverrides struct{}
 
-func (FfiDestroyerTypeLocaleOverrides) destroy(value LocaleOverrides) {
+func (_ FfiDestroyerTypeLocaleOverrides) destroy(value LocaleOverrides) {
 	value.Destroy()
 }
 
@@ -3086,25 +2588,16 @@ type FfiConverterTypeLocalizedName struct{}
 
 var FfiConverterTypeLocalizedNameINSTANCE = FfiConverterTypeLocalizedName{}
 
-func (c FfiConverterTypeLocalizedName) lift(cRustBuf C.RustBuffer) (LocalizedName, error) {
+func (c FfiConverterTypeLocalizedName) lift(cRustBuf C.RustBuffer) LocalizedName {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LocalizedName](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLocalizedName) read(reader io.Reader) (LocalizedName, error) {
-	var _uniffiDefaultValue LocalizedName
-	_locale, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_name, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLocalizedName) read(reader io.Reader) LocalizedName {
 	return LocalizedName{
-		Locale: _locale,
-		Name:   _name,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLocalizedName) lower(value LocalizedName) C.RustBuffer {
@@ -3118,7 +2611,7 @@ func (c FfiConverterTypeLocalizedName) write(writer io.Writer, value LocalizedNa
 
 type FfiDestroyerTypeLocalizedName struct{}
 
-func (FfiDestroyerTypeLocalizedName) destroy(value LocalizedName) {
+func (_ FfiDestroyerTypeLocalizedName) destroy(value LocalizedName) {
 	value.Destroy()
 }
 
@@ -3136,25 +2629,16 @@ type FfiConverterTypeLogEntry struct{}
 
 var FfiConverterTypeLogEntryINSTANCE = FfiConverterTypeLogEntry{}
 
-func (c FfiConverterTypeLogEntry) lift(cRustBuf C.RustBuffer) (LogEntry, error) {
+func (c FfiConverterTypeLogEntry) lift(cRustBuf C.RustBuffer) LogEntry {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LogEntry](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLogEntry) read(reader io.Reader) (LogEntry, error) {
-	var _uniffiDefaultValue LogEntry
-	_line, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_level, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLogEntry) read(reader io.Reader) LogEntry {
 	return LogEntry{
-		Line:  _line,
-		Level: _level,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLogEntry) lower(value LogEntry) C.RustBuffer {
@@ -3168,7 +2652,7 @@ func (c FfiConverterTypeLogEntry) write(writer io.Writer, value LogEntry) {
 
 type FfiDestroyerTypeLogEntry struct{}
 
-func (FfiDestroyerTypeLogEntry) destroy(value LogEntry) {
+func (_ FfiDestroyerTypeLogEntry) destroy(value LogEntry) {
 	value.Destroy()
 }
 
@@ -3208,80 +2692,27 @@ type FfiConverterTypeLspInformation struct{}
 
 var FfiConverterTypeLspInformationINSTANCE = FfiConverterTypeLspInformation{}
 
-func (c FfiConverterTypeLspInformation) lift(cRustBuf C.RustBuffer) (LspInformation, error) {
+func (c FfiConverterTypeLspInformation) lift(cRustBuf C.RustBuffer) LspInformation {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[LspInformation](c, rustBuffer)
 }
 
-func (c FfiConverterTypeLspInformation) read(reader io.Reader) (LspInformation, error) {
-	var _uniffiDefaultValue LspInformation
-	_id, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_name, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_widgetUrl, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_pubkey, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_host, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_channelCapacity, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_targetConf, err := FfiConverterint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_baseFeeMsat, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feeRate, err := FfiConverterfloat64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_timeLockDelta, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_minHtlcMsat, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lspPubkey, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeParamsList, err := FfiConverterTypeOpeningFeeParamsMenuINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeLspInformation) read(reader io.Reader) LspInformation {
 	return LspInformation{
-		Id:                   _id,
-		Name:                 _name,
-		WidgetUrl:            _widgetUrl,
-		Pubkey:               _pubkey,
-		Host:                 _host,
-		ChannelCapacity:      _channelCapacity,
-		TargetConf:           _targetConf,
-		BaseFeeMsat:          _baseFeeMsat,
-		FeeRate:              _feeRate,
-		TimeLockDelta:        _timeLockDelta,
-		MinHtlcMsat:          _minHtlcMsat,
-		LspPubkey:            _lspPubkey,
-		OpeningFeeParamsList: _openingFeeParamsList,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterint32INSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterfloat64INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterTypeOpeningFeeParamsMenuINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeLspInformation) lower(value LspInformation) C.RustBuffer {
@@ -3306,7 +2737,7 @@ func (c FfiConverterTypeLspInformation) write(writer io.Writer, value LspInforma
 
 type FfiDestroyerTypeLspInformation struct{}
 
-func (FfiDestroyerTypeLspInformation) destroy(value LspInformation) {
+func (_ FfiDestroyerTypeLspInformation) destroy(value LspInformation) {
 	value.Destroy()
 }
 
@@ -3322,20 +2753,15 @@ type FfiConverterTypeMessageSuccessActionData struct{}
 
 var FfiConverterTypeMessageSuccessActionDataINSTANCE = FfiConverterTypeMessageSuccessActionData{}
 
-func (c FfiConverterTypeMessageSuccessActionData) lift(cRustBuf C.RustBuffer) (MessageSuccessActionData, error) {
+func (c FfiConverterTypeMessageSuccessActionData) lift(cRustBuf C.RustBuffer) MessageSuccessActionData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[MessageSuccessActionData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeMessageSuccessActionData) read(reader io.Reader) (MessageSuccessActionData, error) {
-	var _uniffiDefaultValue MessageSuccessActionData
-	_message, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeMessageSuccessActionData) read(reader io.Reader) MessageSuccessActionData {
 	return MessageSuccessActionData{
-		Message: _message,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeMessageSuccessActionData) lower(value MessageSuccessActionData) C.RustBuffer {
@@ -3348,7 +2774,7 @@ func (c FfiConverterTypeMessageSuccessActionData) write(writer io.Writer, value 
 
 type FfiDestroyerTypeMessageSuccessActionData struct{}
 
-func (FfiDestroyerTypeMessageSuccessActionData) destroy(value MessageSuccessActionData) {
+func (_ FfiDestroyerTypeMessageSuccessActionData) destroy(value MessageSuccessActionData) {
 	value.Destroy()
 }
 
@@ -3366,25 +2792,16 @@ type FfiConverterTypeMetadataItem struct{}
 
 var FfiConverterTypeMetadataItemINSTANCE = FfiConverterTypeMetadataItem{}
 
-func (c FfiConverterTypeMetadataItem) lift(cRustBuf C.RustBuffer) (MetadataItem, error) {
+func (c FfiConverterTypeMetadataItem) lift(cRustBuf C.RustBuffer) MetadataItem {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[MetadataItem](c, rustBuffer)
 }
 
-func (c FfiConverterTypeMetadataItem) read(reader io.Reader) (MetadataItem, error) {
-	var _uniffiDefaultValue MetadataItem
-	_key, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_value, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeMetadataItem) read(reader io.Reader) MetadataItem {
 	return MetadataItem{
-		Key:   _key,
-		Value: _value,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeMetadataItem) lower(value MetadataItem) C.RustBuffer {
@@ -3398,7 +2815,7 @@ func (c FfiConverterTypeMetadataItem) write(writer io.Writer, value MetadataItem
 
 type FfiDestroyerTypeMetadataItem struct{}
 
-func (FfiDestroyerTypeMetadataItem) destroy(value MetadataItem) {
+func (_ FfiDestroyerTypeMetadataItem) destroy(value MetadataItem) {
 	value.Destroy()
 }
 
@@ -3434,70 +2851,25 @@ type FfiConverterTypeNodeState struct{}
 
 var FfiConverterTypeNodeStateINSTANCE = FfiConverterTypeNodeState{}
 
-func (c FfiConverterTypeNodeState) lift(cRustBuf C.RustBuffer) (NodeState, error) {
+func (c FfiConverterTypeNodeState) lift(cRustBuf C.RustBuffer) NodeState {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[NodeState](c, rustBuffer)
 }
 
-func (c FfiConverterTypeNodeState) read(reader io.Reader) (NodeState, error) {
-	var _uniffiDefaultValue NodeState
-	_id, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_blockHeight, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_channelsBalanceMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_onchainBalanceMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_utxos, err := FfiConverterSequenceTypeUnspentTransactionOutputINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxPayableMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxReceivableMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxSinglePaymentAmountMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxChanReserveMsats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_connectedPeers, err := FfiConverterSequencestringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_inboundLiquidityMsats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeNodeState) read(reader io.Reader) NodeState {
 	return NodeState{
-		Id:                         _id,
-		BlockHeight:                _blockHeight,
-		ChannelsBalanceMsat:        _channelsBalanceMsat,
-		OnchainBalanceMsat:         _onchainBalanceMsat,
-		Utxos:                      _utxos,
-		MaxPayableMsat:             _maxPayableMsat,
-		MaxReceivableMsat:          _maxReceivableMsat,
-		MaxSinglePaymentAmountMsat: _maxSinglePaymentAmountMsat,
-		MaxChanReserveMsats:        _maxChanReserveMsats,
-		ConnectedPeers:             _connectedPeers,
-		InboundLiquidityMsats:      _inboundLiquidityMsats,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterSequenceTypeUnspentTransactionOutputINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterSequencestringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeNodeState) lower(value NodeState) C.RustBuffer {
@@ -3520,7 +2892,7 @@ func (c FfiConverterTypeNodeState) write(writer io.Writer, value NodeState) {
 
 type FfiDestroyerTypeNodeState struct{}
 
-func (FfiDestroyerTypeNodeState) destroy(value NodeState) {
+func (_ FfiDestroyerTypeNodeState) destroy(value NodeState) {
 	value.Destroy()
 }
 
@@ -3538,25 +2910,16 @@ type FfiConverterTypeOpenChannelFeeRequest struct{}
 
 var FfiConverterTypeOpenChannelFeeRequestINSTANCE = FfiConverterTypeOpenChannelFeeRequest{}
 
-func (c FfiConverterTypeOpenChannelFeeRequest) lift(cRustBuf C.RustBuffer) (OpenChannelFeeRequest, error) {
+func (c FfiConverterTypeOpenChannelFeeRequest) lift(cRustBuf C.RustBuffer) OpenChannelFeeRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[OpenChannelFeeRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeOpenChannelFeeRequest) read(reader io.Reader) (OpenChannelFeeRequest, error) {
-	var _uniffiDefaultValue OpenChannelFeeRequest
-	_amountMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_expiry, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeOpenChannelFeeRequest) read(reader io.Reader) OpenChannelFeeRequest {
 	return OpenChannelFeeRequest{
-		AmountMsat: _amountMsat,
-		Expiry:     _expiry,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeOpenChannelFeeRequest) lower(value OpenChannelFeeRequest) C.RustBuffer {
@@ -3570,7 +2933,7 @@ func (c FfiConverterTypeOpenChannelFeeRequest) write(writer io.Writer, value Ope
 
 type FfiDestroyerTypeOpenChannelFeeRequest struct{}
 
-func (FfiDestroyerTypeOpenChannelFeeRequest) destroy(value OpenChannelFeeRequest) {
+func (_ FfiDestroyerTypeOpenChannelFeeRequest) destroy(value OpenChannelFeeRequest) {
 	value.Destroy()
 }
 
@@ -3588,25 +2951,16 @@ type FfiConverterTypeOpenChannelFeeResponse struct{}
 
 var FfiConverterTypeOpenChannelFeeResponseINSTANCE = FfiConverterTypeOpenChannelFeeResponse{}
 
-func (c FfiConverterTypeOpenChannelFeeResponse) lift(cRustBuf C.RustBuffer) (OpenChannelFeeResponse, error) {
+func (c FfiConverterTypeOpenChannelFeeResponse) lift(cRustBuf C.RustBuffer) OpenChannelFeeResponse {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[OpenChannelFeeResponse](c, rustBuffer)
 }
 
-func (c FfiConverterTypeOpenChannelFeeResponse) read(reader io.Reader) (OpenChannelFeeResponse, error) {
-	var _uniffiDefaultValue OpenChannelFeeResponse
-	_feeMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_usedFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeOpenChannelFeeResponse) read(reader io.Reader) OpenChannelFeeResponse {
 	return OpenChannelFeeResponse{
-		FeeMsat:       _feeMsat,
-		UsedFeeParams: _usedFeeParams,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeOpenChannelFeeResponse) lower(value OpenChannelFeeResponse) C.RustBuffer {
@@ -3620,7 +2974,7 @@ func (c FfiConverterTypeOpenChannelFeeResponse) write(writer io.Writer, value Op
 
 type FfiDestroyerTypeOpenChannelFeeResponse struct{}
 
-func (FfiDestroyerTypeOpenChannelFeeResponse) destroy(value OpenChannelFeeResponse) {
+func (_ FfiDestroyerTypeOpenChannelFeeResponse) destroy(value OpenChannelFeeResponse) {
 	value.Destroy()
 }
 
@@ -3646,45 +3000,20 @@ type FfiConverterTypeOpeningFeeParams struct{}
 
 var FfiConverterTypeOpeningFeeParamsINSTANCE = FfiConverterTypeOpeningFeeParams{}
 
-func (c FfiConverterTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) (OpeningFeeParams, error) {
+func (c FfiConverterTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) OpeningFeeParams {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[OpeningFeeParams](c, rustBuffer)
 }
 
-func (c FfiConverterTypeOpeningFeeParams) read(reader io.Reader) (OpeningFeeParams, error) {
-	var _uniffiDefaultValue OpeningFeeParams
-	_minMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_proportional, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_validUntil, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxIdleTime, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxClientToSelfDelay, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_promise, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeOpeningFeeParams) read(reader io.Reader) OpeningFeeParams {
 	return OpeningFeeParams{
-		MinMsat:              _minMsat,
-		Proportional:         _proportional,
-		ValidUntil:           _validUntil,
-		MaxIdleTime:          _maxIdleTime,
-		MaxClientToSelfDelay: _maxClientToSelfDelay,
-		Promise:              _promise,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeOpeningFeeParams) lower(value OpeningFeeParams) C.RustBuffer {
@@ -3702,7 +3031,7 @@ func (c FfiConverterTypeOpeningFeeParams) write(writer io.Writer, value OpeningF
 
 type FfiDestroyerTypeOpeningFeeParams struct{}
 
-func (FfiDestroyerTypeOpeningFeeParams) destroy(value OpeningFeeParams) {
+func (_ FfiDestroyerTypeOpeningFeeParams) destroy(value OpeningFeeParams) {
 	value.Destroy()
 }
 
@@ -3718,20 +3047,15 @@ type FfiConverterTypeOpeningFeeParamsMenu struct{}
 
 var FfiConverterTypeOpeningFeeParamsMenuINSTANCE = FfiConverterTypeOpeningFeeParamsMenu{}
 
-func (c FfiConverterTypeOpeningFeeParamsMenu) lift(cRustBuf C.RustBuffer) (OpeningFeeParamsMenu, error) {
+func (c FfiConverterTypeOpeningFeeParamsMenu) lift(cRustBuf C.RustBuffer) OpeningFeeParamsMenu {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[OpeningFeeParamsMenu](c, rustBuffer)
 }
 
-func (c FfiConverterTypeOpeningFeeParamsMenu) read(reader io.Reader) (OpeningFeeParamsMenu, error) {
-	var _uniffiDefaultValue OpeningFeeParamsMenu
-	_values, err := FfiConverterSequenceTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeOpeningFeeParamsMenu) read(reader io.Reader) OpeningFeeParamsMenu {
 	return OpeningFeeParamsMenu{
-		Values: _values,
-	}, nil
+		FfiConverterSequenceTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeOpeningFeeParamsMenu) lower(value OpeningFeeParamsMenu) C.RustBuffer {
@@ -3744,7 +3068,7 @@ func (c FfiConverterTypeOpeningFeeParamsMenu) write(writer io.Writer, value Open
 
 type FfiDestroyerTypeOpeningFeeParamsMenu struct{}
 
-func (FfiDestroyerTypeOpeningFeeParamsMenu) destroy(value OpeningFeeParamsMenu) {
+func (_ FfiDestroyerTypeOpeningFeeParamsMenu) destroy(value OpeningFeeParamsMenu) {
 	value.Destroy()
 }
 
@@ -3774,55 +3098,22 @@ type FfiConverterTypePayment struct{}
 
 var FfiConverterTypePaymentINSTANCE = FfiConverterTypePayment{}
 
-func (c FfiConverterTypePayment) lift(cRustBuf C.RustBuffer) (Payment, error) {
+func (c FfiConverterTypePayment) lift(cRustBuf C.RustBuffer) Payment {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[Payment](c, rustBuffer)
 }
 
-func (c FfiConverterTypePayment) read(reader io.Reader) (Payment, error) {
-	var _uniffiDefaultValue Payment
-	_id, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentType, err := FfiConverterTypePaymentTypeINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentTime, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_amountMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feeMsat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_pending, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_description, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_details, err := FfiConverterTypePaymentDetailsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypePayment) read(reader io.Reader) Payment {
 	return Payment{
-		Id:          _id,
-		PaymentType: _paymentType,
-		PaymentTime: _paymentTime,
-		AmountMsat:  _amountMsat,
-		FeeMsat:     _feeMsat,
-		Pending:     _pending,
-		Description: _description,
-		Details:     _details,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterTypePaymentTypeINSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterboolINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterTypePaymentDetailsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypePayment) lower(value Payment) C.RustBuffer {
@@ -3842,7 +3133,7 @@ func (c FfiConverterTypePayment) write(writer io.Writer, value Payment) {
 
 type FfiDestroyerTypePayment struct{}
 
-func (FfiDestroyerTypePayment) destroy(value Payment) {
+func (_ FfiDestroyerTypePayment) destroy(value Payment) {
 	value.Destroy()
 }
 
@@ -3862,30 +3153,17 @@ type FfiConverterTypePaymentFailedData struct{}
 
 var FfiConverterTypePaymentFailedDataINSTANCE = FfiConverterTypePaymentFailedData{}
 
-func (c FfiConverterTypePaymentFailedData) lift(cRustBuf C.RustBuffer) (PaymentFailedData, error) {
+func (c FfiConverterTypePaymentFailedData) lift(cRustBuf C.RustBuffer) PaymentFailedData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[PaymentFailedData](c, rustBuffer)
 }
 
-func (c FfiConverterTypePaymentFailedData) read(reader io.Reader) (PaymentFailedData, error) {
-	var _uniffiDefaultValue PaymentFailedData
-	_error, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_nodeId, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_invoice, err := FfiConverterOptionalTypeLnInvoiceINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypePaymentFailedData) read(reader io.Reader) PaymentFailedData {
 	return PaymentFailedData{
-		Error:   _error,
-		NodeId:  _nodeId,
-		Invoice: _invoice,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalTypeLnInvoiceINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypePaymentFailedData) lower(value PaymentFailedData) C.RustBuffer {
@@ -3900,7 +3178,7 @@ func (c FfiConverterTypePaymentFailedData) write(writer io.Writer, value Payment
 
 type FfiDestroyerTypePaymentFailedData struct{}
 
-func (FfiDestroyerTypePaymentFailedData) destroy(value PaymentFailedData) {
+func (_ FfiDestroyerTypePaymentFailedData) destroy(value PaymentFailedData) {
 	value.Destroy()
 }
 
@@ -3918,25 +3196,16 @@ type FfiConverterTypeRate struct{}
 
 var FfiConverterTypeRateINSTANCE = FfiConverterTypeRate{}
 
-func (c FfiConverterTypeRate) lift(cRustBuf C.RustBuffer) (Rate, error) {
+func (c FfiConverterTypeRate) lift(cRustBuf C.RustBuffer) Rate {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[Rate](c, rustBuffer)
 }
 
-func (c FfiConverterTypeRate) read(reader io.Reader) (Rate, error) {
-	var _uniffiDefaultValue Rate
-	_coin, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_value, err := FfiConverterfloat64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeRate) read(reader io.Reader) Rate {
 	return Rate{
-		Coin:  _coin,
-		Value: _value,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterfloat64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeRate) lower(value Rate) C.RustBuffer {
@@ -3950,7 +3219,7 @@ func (c FfiConverterTypeRate) write(writer io.Writer, value Rate) {
 
 type FfiDestroyerTypeRate struct{}
 
-func (FfiDestroyerTypeRate) destroy(value Rate) {
+func (_ FfiDestroyerTypeRate) destroy(value Rate) {
 	value.Destroy()
 }
 
@@ -3966,20 +3235,15 @@ type FfiConverterTypeReceiveOnchainRequest struct{}
 
 var FfiConverterTypeReceiveOnchainRequestINSTANCE = FfiConverterTypeReceiveOnchainRequest{}
 
-func (c FfiConverterTypeReceiveOnchainRequest) lift(cRustBuf C.RustBuffer) (ReceiveOnchainRequest, error) {
+func (c FfiConverterTypeReceiveOnchainRequest) lift(cRustBuf C.RustBuffer) ReceiveOnchainRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReceiveOnchainRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReceiveOnchainRequest) read(reader io.Reader) (ReceiveOnchainRequest, error) {
-	var _uniffiDefaultValue ReceiveOnchainRequest
-	_openingFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReceiveOnchainRequest) read(reader io.Reader) ReceiveOnchainRequest {
 	return ReceiveOnchainRequest{
-		OpeningFeeParams: _openingFeeParams,
-	}, nil
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReceiveOnchainRequest) lower(value ReceiveOnchainRequest) C.RustBuffer {
@@ -3992,7 +3256,7 @@ func (c FfiConverterTypeReceiveOnchainRequest) write(writer io.Writer, value Rec
 
 type FfiDestroyerTypeReceiveOnchainRequest struct{}
 
-func (FfiDestroyerTypeReceiveOnchainRequest) destroy(value ReceiveOnchainRequest) {
+func (_ FfiDestroyerTypeReceiveOnchainRequest) destroy(value ReceiveOnchainRequest) {
 	value.Destroy()
 }
 
@@ -4020,50 +3284,21 @@ type FfiConverterTypeReceivePaymentRequest struct{}
 
 var FfiConverterTypeReceivePaymentRequestINSTANCE = FfiConverterTypeReceivePaymentRequest{}
 
-func (c FfiConverterTypeReceivePaymentRequest) lift(cRustBuf C.RustBuffer) (ReceivePaymentRequest, error) {
+func (c FfiConverterTypeReceivePaymentRequest) lift(cRustBuf C.RustBuffer) ReceivePaymentRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReceivePaymentRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReceivePaymentRequest) read(reader io.Reader) (ReceivePaymentRequest, error) {
-	var _uniffiDefaultValue ReceivePaymentRequest
-	_amountSats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_description, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_preimage, err := FfiConverterOptionalSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_useDescriptionHash, err := FfiConverterOptionalboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_expiry, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_cltv, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReceivePaymentRequest) read(reader io.Reader) ReceivePaymentRequest {
 	return ReceivePaymentRequest{
-		AmountSats:         _amountSats,
-		Description:        _description,
-		Preimage:           _preimage,
-		OpeningFeeParams:   _openingFeeParams,
-		UseDescriptionHash: _useDescriptionHash,
-		Expiry:             _expiry,
-		Cltv:               _cltv,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterOptionalSequenceuint8INSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+		FfiConverterOptionalboolINSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReceivePaymentRequest) lower(value ReceivePaymentRequest) C.RustBuffer {
@@ -4082,7 +3317,7 @@ func (c FfiConverterTypeReceivePaymentRequest) write(writer io.Writer, value Rec
 
 type FfiDestroyerTypeReceivePaymentRequest struct{}
 
-func (FfiDestroyerTypeReceivePaymentRequest) destroy(value ReceivePaymentRequest) {
+func (_ FfiDestroyerTypeReceivePaymentRequest) destroy(value ReceivePaymentRequest) {
 	value.Destroy()
 }
 
@@ -4102,30 +3337,17 @@ type FfiConverterTypeReceivePaymentResponse struct{}
 
 var FfiConverterTypeReceivePaymentResponseINSTANCE = FfiConverterTypeReceivePaymentResponse{}
 
-func (c FfiConverterTypeReceivePaymentResponse) lift(cRustBuf C.RustBuffer) (ReceivePaymentResponse, error) {
+func (c FfiConverterTypeReceivePaymentResponse) lift(cRustBuf C.RustBuffer) ReceivePaymentResponse {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReceivePaymentResponse](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReceivePaymentResponse) read(reader io.Reader) (ReceivePaymentResponse, error) {
-	var _uniffiDefaultValue ReceivePaymentResponse
-	_lnInvoice, err := FfiConverterTypeLnInvoiceINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeParams, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_openingFeeMsat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReceivePaymentResponse) read(reader io.Reader) ReceivePaymentResponse {
 	return ReceivePaymentResponse{
-		LnInvoice:        _lnInvoice,
-		OpeningFeeParams: _openingFeeParams,
-		OpeningFeeMsat:   _openingFeeMsat,
-	}, nil
+		FfiConverterTypeLnInvoiceINSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReceivePaymentResponse) lower(value ReceivePaymentResponse) C.RustBuffer {
@@ -4140,7 +3362,7 @@ func (c FfiConverterTypeReceivePaymentResponse) write(writer io.Writer, value Re
 
 type FfiDestroyerTypeReceivePaymentResponse struct{}
 
-func (FfiDestroyerTypeReceivePaymentResponse) destroy(value ReceivePaymentResponse) {
+func (_ FfiDestroyerTypeReceivePaymentResponse) destroy(value ReceivePaymentResponse) {
 	value.Destroy()
 }
 
@@ -4164,40 +3386,19 @@ type FfiConverterTypeRecommendedFees struct{}
 
 var FfiConverterTypeRecommendedFeesINSTANCE = FfiConverterTypeRecommendedFees{}
 
-func (c FfiConverterTypeRecommendedFees) lift(cRustBuf C.RustBuffer) (RecommendedFees, error) {
+func (c FfiConverterTypeRecommendedFees) lift(cRustBuf C.RustBuffer) RecommendedFees {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[RecommendedFees](c, rustBuffer)
 }
 
-func (c FfiConverterTypeRecommendedFees) read(reader io.Reader) (RecommendedFees, error) {
-	var _uniffiDefaultValue RecommendedFees
-	_fastestFee, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_halfHourFee, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_hourFee, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_economyFee, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_minimumFee, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeRecommendedFees) read(reader io.Reader) RecommendedFees {
 	return RecommendedFees{
-		FastestFee:  _fastestFee,
-		HalfHourFee: _halfHourFee,
-		HourFee:     _hourFee,
-		EconomyFee:  _economyFee,
-		MinimumFee:  _minimumFee,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeRecommendedFees) lower(value RecommendedFees) C.RustBuffer {
@@ -4214,7 +3415,7 @@ func (c FfiConverterTypeRecommendedFees) write(writer io.Writer, value Recommend
 
 type FfiDestroyerTypeRecommendedFees struct{}
 
-func (FfiDestroyerTypeRecommendedFees) destroy(value RecommendedFees) {
+func (_ FfiDestroyerTypeRecommendedFees) destroy(value RecommendedFees) {
 	value.Destroy()
 }
 
@@ -4230,20 +3431,15 @@ type FfiConverterTypeReverseSwapFeesRequest struct{}
 
 var FfiConverterTypeReverseSwapFeesRequestINSTANCE = FfiConverterTypeReverseSwapFeesRequest{}
 
-func (c FfiConverterTypeReverseSwapFeesRequest) lift(cRustBuf C.RustBuffer) (ReverseSwapFeesRequest, error) {
+func (c FfiConverterTypeReverseSwapFeesRequest) lift(cRustBuf C.RustBuffer) ReverseSwapFeesRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReverseSwapFeesRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReverseSwapFeesRequest) read(reader io.Reader) (ReverseSwapFeesRequest, error) {
-	var _uniffiDefaultValue ReverseSwapFeesRequest
-	_sendAmountSat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReverseSwapFeesRequest) read(reader io.Reader) ReverseSwapFeesRequest {
 	return ReverseSwapFeesRequest{
-		SendAmountSat: _sendAmountSat,
-	}, nil
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReverseSwapFeesRequest) lower(value ReverseSwapFeesRequest) C.RustBuffer {
@@ -4256,7 +3452,7 @@ func (c FfiConverterTypeReverseSwapFeesRequest) write(writer io.Writer, value Re
 
 type FfiDestroyerTypeReverseSwapFeesRequest struct{}
 
-func (FfiDestroyerTypeReverseSwapFeesRequest) destroy(value ReverseSwapFeesRequest) {
+func (_ FfiDestroyerTypeReverseSwapFeesRequest) destroy(value ReverseSwapFeesRequest) {
 	value.Destroy()
 }
 
@@ -4278,35 +3474,18 @@ type FfiConverterTypeReverseSwapInfo struct{}
 
 var FfiConverterTypeReverseSwapInfoINSTANCE = FfiConverterTypeReverseSwapInfo{}
 
-func (c FfiConverterTypeReverseSwapInfo) lift(cRustBuf C.RustBuffer) (ReverseSwapInfo, error) {
+func (c FfiConverterTypeReverseSwapInfo) lift(cRustBuf C.RustBuffer) ReverseSwapInfo {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReverseSwapInfo](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReverseSwapInfo) read(reader io.Reader) (ReverseSwapInfo, error) {
-	var _uniffiDefaultValue ReverseSwapInfo
-	_id, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_claimPubkey, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_onchainAmountSat, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_status, err := FfiConverterTypeReverseSwapStatusINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReverseSwapInfo) read(reader io.Reader) ReverseSwapInfo {
 	return ReverseSwapInfo{
-		Id:               _id,
-		ClaimPubkey:      _claimPubkey,
-		OnchainAmountSat: _onchainAmountSat,
-		Status:           _status,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterTypeReverseSwapStatusINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReverseSwapInfo) lower(value ReverseSwapInfo) C.RustBuffer {
@@ -4322,7 +3501,7 @@ func (c FfiConverterTypeReverseSwapInfo) write(writer io.Writer, value ReverseSw
 
 type FfiDestroyerTypeReverseSwapInfo struct{}
 
-func (FfiDestroyerTypeReverseSwapInfo) destroy(value ReverseSwapInfo) {
+func (_ FfiDestroyerTypeReverseSwapInfo) destroy(value ReverseSwapInfo) {
 	value.Destroy()
 }
 
@@ -4350,50 +3529,21 @@ type FfiConverterTypeReverseSwapPairInfo struct{}
 
 var FfiConverterTypeReverseSwapPairInfoINSTANCE = FfiConverterTypeReverseSwapPairInfo{}
 
-func (c FfiConverterTypeReverseSwapPairInfo) lift(cRustBuf C.RustBuffer) (ReverseSwapPairInfo, error) {
+func (c FfiConverterTypeReverseSwapPairInfo) lift(cRustBuf C.RustBuffer) ReverseSwapPairInfo {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[ReverseSwapPairInfo](c, rustBuffer)
 }
 
-func (c FfiConverterTypeReverseSwapPairInfo) read(reader io.Reader) (ReverseSwapPairInfo, error) {
-	var _uniffiDefaultValue ReverseSwapPairInfo
-	_min, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_max, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesHash, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesPercentage, err := FfiConverterfloat64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesLockup, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesClaim, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_totalEstimatedFees, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeReverseSwapPairInfo) read(reader io.Reader) ReverseSwapPairInfo {
 	return ReverseSwapPairInfo{
-		Min:                _min,
-		Max:                _max,
-		FeesHash:           _feesHash,
-		FeesPercentage:     _feesPercentage,
-		FeesLockup:         _feesLockup,
-		FeesClaim:          _feesClaim,
-		TotalEstimatedFees: _totalEstimatedFees,
-	}, nil
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterfloat64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeReverseSwapPairInfo) lower(value ReverseSwapPairInfo) C.RustBuffer {
@@ -4412,7 +3562,7 @@ func (c FfiConverterTypeReverseSwapPairInfo) write(writer io.Writer, value Rever
 
 type FfiDestroyerTypeReverseSwapPairInfo struct{}
 
-func (FfiDestroyerTypeReverseSwapPairInfo) destroy(value ReverseSwapPairInfo) {
+func (_ FfiDestroyerTypeReverseSwapPairInfo) destroy(value ReverseSwapPairInfo) {
 	value.Destroy()
 }
 
@@ -4428,20 +3578,15 @@ type FfiConverterTypeRouteHint struct{}
 
 var FfiConverterTypeRouteHintINSTANCE = FfiConverterTypeRouteHint{}
 
-func (c FfiConverterTypeRouteHint) lift(cRustBuf C.RustBuffer) (RouteHint, error) {
+func (c FfiConverterTypeRouteHint) lift(cRustBuf C.RustBuffer) RouteHint {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[RouteHint](c, rustBuffer)
 }
 
-func (c FfiConverterTypeRouteHint) read(reader io.Reader) (RouteHint, error) {
-	var _uniffiDefaultValue RouteHint
-	_hops, err := FfiConverterSequenceTypeRouteHintHopINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeRouteHint) read(reader io.Reader) RouteHint {
 	return RouteHint{
-		Hops: _hops,
-	}, nil
+		FfiConverterSequenceTypeRouteHintHopINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeRouteHint) lower(value RouteHint) C.RustBuffer {
@@ -4454,7 +3599,7 @@ func (c FfiConverterTypeRouteHint) write(writer io.Writer, value RouteHint) {
 
 type FfiDestroyerTypeRouteHint struct{}
 
-func (FfiDestroyerTypeRouteHint) destroy(value RouteHint) {
+func (_ FfiDestroyerTypeRouteHint) destroy(value RouteHint) {
 	value.Destroy()
 }
 
@@ -4482,50 +3627,21 @@ type FfiConverterTypeRouteHintHop struct{}
 
 var FfiConverterTypeRouteHintHopINSTANCE = FfiConverterTypeRouteHintHop{}
 
-func (c FfiConverterTypeRouteHintHop) lift(cRustBuf C.RustBuffer) (RouteHintHop, error) {
+func (c FfiConverterTypeRouteHintHop) lift(cRustBuf C.RustBuffer) RouteHintHop {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[RouteHintHop](c, rustBuffer)
 }
 
-func (c FfiConverterTypeRouteHintHop) read(reader io.Reader) (RouteHintHop, error) {
-	var _uniffiDefaultValue RouteHintHop
-	_srcNodeId, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_shortChannelId, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesBaseMsat, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_feesProportionalMillionths, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_cltvExpiryDelta, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_htlcMinimumMsat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_htlcMaximumMsat, err := FfiConverterOptionaluint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeRouteHintHop) read(reader io.Reader) RouteHintHop {
 	return RouteHintHop{
-		SrcNodeId:                  _srcNodeId,
-		ShortChannelId:             _shortChannelId,
-		FeesBaseMsat:               _feesBaseMsat,
-		FeesProportionalMillionths: _feesProportionalMillionths,
-		CltvExpiryDelta:            _cltvExpiryDelta,
-		HtlcMinimumMsat:            _htlcMinimumMsat,
-		HtlcMaximumMsat:            _htlcMaximumMsat,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+		FfiConverterOptionaluint64INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeRouteHintHop) lower(value RouteHintHop) C.RustBuffer {
@@ -4544,7 +3660,7 @@ func (c FfiConverterTypeRouteHintHop) write(writer io.Writer, value RouteHintHop
 
 type FfiDestroyerTypeRouteHintHop struct{}
 
-func (FfiDestroyerTypeRouteHintHop) destroy(value RouteHintHop) {
+func (_ FfiDestroyerTypeRouteHintHop) destroy(value RouteHintHop) {
 	value.Destroy()
 }
 
@@ -4560,20 +3676,15 @@ type FfiConverterTypeSignMessageRequest struct{}
 
 var FfiConverterTypeSignMessageRequestINSTANCE = FfiConverterTypeSignMessageRequest{}
 
-func (c FfiConverterTypeSignMessageRequest) lift(cRustBuf C.RustBuffer) (SignMessageRequest, error) {
+func (c FfiConverterTypeSignMessageRequest) lift(cRustBuf C.RustBuffer) SignMessageRequest {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[SignMessageRequest](c, rustBuffer)
 }
 
-func (c FfiConverterTypeSignMessageRequest) read(reader io.Reader) (SignMessageRequest, error) {
-	var _uniffiDefaultValue SignMessageRequest
-	_message, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeSignMessageRequest) read(reader io.Reader) SignMessageRequest {
 	return SignMessageRequest{
-		Message: _message,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeSignMessageRequest) lower(value SignMessageRequest) C.RustBuffer {
@@ -4586,7 +3697,7 @@ func (c FfiConverterTypeSignMessageRequest) write(writer io.Writer, value SignMe
 
 type FfiDestroyerTypeSignMessageRequest struct{}
 
-func (FfiDestroyerTypeSignMessageRequest) destroy(value SignMessageRequest) {
+func (_ FfiDestroyerTypeSignMessageRequest) destroy(value SignMessageRequest) {
 	value.Destroy()
 }
 
@@ -4602,20 +3713,15 @@ type FfiConverterTypeSignMessageResponse struct{}
 
 var FfiConverterTypeSignMessageResponseINSTANCE = FfiConverterTypeSignMessageResponse{}
 
-func (c FfiConverterTypeSignMessageResponse) lift(cRustBuf C.RustBuffer) (SignMessageResponse, error) {
+func (c FfiConverterTypeSignMessageResponse) lift(cRustBuf C.RustBuffer) SignMessageResponse {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[SignMessageResponse](c, rustBuffer)
 }
 
-func (c FfiConverterTypeSignMessageResponse) read(reader io.Reader) (SignMessageResponse, error) {
-	var _uniffiDefaultValue SignMessageResponse
-	_signature, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeSignMessageResponse) read(reader io.Reader) SignMessageResponse {
 	return SignMessageResponse{
-		Signature: _signature,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeSignMessageResponse) lower(value SignMessageResponse) C.RustBuffer {
@@ -4628,7 +3734,7 @@ func (c FfiConverterTypeSignMessageResponse) write(writer io.Writer, value SignM
 
 type FfiDestroyerTypeSignMessageResponse struct{}
 
-func (FfiDestroyerTypeSignMessageResponse) destroy(value SignMessageResponse) {
+func (_ FfiDestroyerTypeSignMessageResponse) destroy(value SignMessageResponse) {
 	value.Destroy()
 }
 
@@ -4684,120 +3790,35 @@ type FfiConverterTypeSwapInfo struct{}
 
 var FfiConverterTypeSwapInfoINSTANCE = FfiConverterTypeSwapInfo{}
 
-func (c FfiConverterTypeSwapInfo) lift(cRustBuf C.RustBuffer) (SwapInfo, error) {
+func (c FfiConverterTypeSwapInfo) lift(cRustBuf C.RustBuffer) SwapInfo {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[SwapInfo](c, rustBuffer)
 }
 
-func (c FfiConverterTypeSwapInfo) read(reader io.Reader) (SwapInfo, error) {
-	var _uniffiDefaultValue SwapInfo
-	_bitcoinAddress, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_createdAt, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lockHeight, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paymentHash, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_preimage, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_privateKey, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_publicKey, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_swapperPublicKey, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_script, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_bolt11, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_paidSats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_unconfirmedSats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_confirmedSats, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_status, err := FfiConverterTypeSwapStatusINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_refundTxIds, err := FfiConverterSequencestringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_unconfirmedTxIds, err := FfiConverterSequencestringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_confirmedTxIds, err := FfiConverterSequencestringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_minAllowedDeposit, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_maxAllowedDeposit, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_lastRedeemError, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_channelOpeningFees, err := FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeSwapInfo) read(reader io.Reader) SwapInfo {
 	return SwapInfo{
-		BitcoinAddress:     _bitcoinAddress,
-		CreatedAt:          _createdAt,
-		LockHeight:         _lockHeight,
-		PaymentHash:        _paymentHash,
-		Preimage:           _preimage,
-		PrivateKey:         _privateKey,
-		PublicKey:          _publicKey,
-		SwapperPublicKey:   _swapperPublicKey,
-		Script:             _script,
-		Bolt11:             _bolt11,
-		PaidSats:           _paidSats,
-		UnconfirmedSats:    _unconfirmedSats,
-		ConfirmedSats:      _confirmedSats,
-		Status:             _status,
-		RefundTxIds:        _refundTxIds,
-		UnconfirmedTxIds:   _unconfirmedTxIds,
-		ConfirmedTxIds:     _confirmedTxIds,
-		MinAllowedDeposit:  _minAllowedDeposit,
-		MaxAllowedDeposit:  _maxAllowedDeposit,
-		LastRedeemError:    _lastRedeemError,
-		ChannelOpeningFees: _channelOpeningFees,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterTypeSwapStatusINSTANCE.read(reader),
+		FfiConverterSequencestringINSTANCE.read(reader),
+		FfiConverterSequencestringINSTANCE.read(reader),
+		FfiConverterSequencestringINSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterint64INSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalTypeOpeningFeeParamsINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeSwapInfo) lower(value SwapInfo) C.RustBuffer {
@@ -4830,7 +3851,7 @@ func (c FfiConverterTypeSwapInfo) write(writer io.Writer, value SwapInfo) {
 
 type FfiDestroyerTypeSwapInfo struct{}
 
-func (FfiDestroyerTypeSwapInfo) destroy(value SwapInfo) {
+func (_ FfiDestroyerTypeSwapInfo) destroy(value SwapInfo) {
 	value.Destroy()
 }
 
@@ -4852,35 +3873,18 @@ type FfiConverterTypeSymbol struct{}
 
 var FfiConverterTypeSymbolINSTANCE = FfiConverterTypeSymbol{}
 
-func (c FfiConverterTypeSymbol) lift(cRustBuf C.RustBuffer) (Symbol, error) {
+func (c FfiConverterTypeSymbol) lift(cRustBuf C.RustBuffer) Symbol {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[Symbol](c, rustBuffer)
 }
 
-func (c FfiConverterTypeSymbol) read(reader io.Reader) (Symbol, error) {
-	var _uniffiDefaultValue Symbol
-	_grapheme, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_template, err := FfiConverterOptionalstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_rtl, err := FfiConverterOptionalboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_position, err := FfiConverterOptionaluint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeSymbol) read(reader io.Reader) Symbol {
 	return Symbol{
-		Grapheme: _grapheme,
-		Template: _template,
-		Rtl:      _rtl,
-		Position: _position,
-	}, nil
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalstringINSTANCE.read(reader),
+		FfiConverterOptionalboolINSTANCE.read(reader),
+		FfiConverterOptionaluint32INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeSymbol) lower(value Symbol) C.RustBuffer {
@@ -4896,7 +3900,7 @@ func (c FfiConverterTypeSymbol) write(writer io.Writer, value Symbol) {
 
 type FfiDestroyerTypeSymbol struct{}
 
-func (FfiDestroyerTypeSymbol) destroy(value Symbol) {
+func (_ FfiDestroyerTypeSymbol) destroy(value Symbol) {
 	value.Destroy()
 }
 
@@ -4922,45 +3926,20 @@ type FfiConverterTypeUnspentTransactionOutput struct{}
 
 var FfiConverterTypeUnspentTransactionOutputINSTANCE = FfiConverterTypeUnspentTransactionOutput{}
 
-func (c FfiConverterTypeUnspentTransactionOutput) lift(cRustBuf C.RustBuffer) (UnspentTransactionOutput, error) {
+func (c FfiConverterTypeUnspentTransactionOutput) lift(cRustBuf C.RustBuffer) UnspentTransactionOutput {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[UnspentTransactionOutput](c, rustBuffer)
 }
 
-func (c FfiConverterTypeUnspentTransactionOutput) read(reader io.Reader) (UnspentTransactionOutput, error) {
-	var _uniffiDefaultValue UnspentTransactionOutput
-	_txid, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_outnum, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_amountMillisatoshi, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_address, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_reserved, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_reservedToBlock, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeUnspentTransactionOutput) read(reader io.Reader) UnspentTransactionOutput {
 	return UnspentTransactionOutput{
-		Txid:               _txid,
-		Outnum:             _outnum,
-		AmountMillisatoshi: _amountMillisatoshi,
-		Address:            _address,
-		Reserved:           _reserved,
-		ReservedToBlock:    _reservedToBlock,
-	}, nil
+		FfiConverterSequenceuint8INSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+		FfiConverteruint64INSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterboolINSTANCE.read(reader),
+		FfiConverteruint32INSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeUnspentTransactionOutput) lower(value UnspentTransactionOutput) C.RustBuffer {
@@ -4978,7 +3957,7 @@ func (c FfiConverterTypeUnspentTransactionOutput) write(writer io.Writer, value 
 
 type FfiDestroyerTypeUnspentTransactionOutput struct{}
 
-func (FfiDestroyerTypeUnspentTransactionOutput) destroy(value UnspentTransactionOutput) {
+func (_ FfiDestroyerTypeUnspentTransactionOutput) destroy(value UnspentTransactionOutput) {
 	value.Destroy()
 }
 
@@ -4996,25 +3975,16 @@ type FfiConverterTypeUrlSuccessActionData struct{}
 
 var FfiConverterTypeUrlSuccessActionDataINSTANCE = FfiConverterTypeUrlSuccessActionData{}
 
-func (c FfiConverterTypeUrlSuccessActionData) lift(cRustBuf C.RustBuffer) (UrlSuccessActionData, error) {
+func (c FfiConverterTypeUrlSuccessActionData) lift(cRustBuf C.RustBuffer) UrlSuccessActionData {
 	rustBuffer := fromCRustBuffer(cRustBuf)
 	return liftFromRustBuffer[UrlSuccessActionData](c, rustBuffer)
 }
 
-func (c FfiConverterTypeUrlSuccessActionData) read(reader io.Reader) (UrlSuccessActionData, error) {
-	var _uniffiDefaultValue UrlSuccessActionData
-	_description, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
-	_url, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (c FfiConverterTypeUrlSuccessActionData) read(reader io.Reader) UrlSuccessActionData {
 	return UrlSuccessActionData{
-		Description: _description,
-		Url:         _url,
-	}, nil
+		FfiConverterstringINSTANCE.read(reader),
+		FfiConverterstringINSTANCE.read(reader),
+	}
 }
 
 func (c FfiConverterTypeUrlSuccessActionData) lower(value UrlSuccessActionData) C.RustBuffer {
@@ -5028,7 +3998,7 @@ func (c FfiConverterTypeUrlSuccessActionData) write(writer io.Writer, value UrlS
 
 type FfiDestroyerTypeUrlSuccessActionData struct{}
 
-func (FfiDestroyerTypeUrlSuccessActionData) destroy(value UrlSuccessActionData) {
+func (_ FfiDestroyerTypeUrlSuccessActionData) destroy(value UrlSuccessActionData) {
 	value.Destroy()
 }
 
@@ -5097,68 +4067,44 @@ type FfiConverterTypeBreezEvent struct{}
 
 var FfiConverterTypeBreezEventINSTANCE = FfiConverterTypeBreezEvent{}
 
-func (c FfiConverterTypeBreezEvent) lift(cRustBuf C.RustBuffer) (BreezEvent, error) {
+func (c FfiConverterTypeBreezEvent) lift(cRustBuf C.RustBuffer) BreezEvent {
 	return liftFromRustBuffer[BreezEvent](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeBreezEvent) lower(value BreezEvent) C.RustBuffer {
 	return lowerIntoRustBuffer[BreezEvent](c, value)
 }
-func (FfiConverterTypeBreezEvent) read(reader io.Reader) (BreezEvent, error) {
-	var _uniffiDefaultValue BreezEvent
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeBreezEvent) read(reader io.Reader) BreezEvent {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_block, err := FfiConverteruint32INSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return BreezEventNewBlock{
-			Block: _block,
-		}, nil
+			FfiConverteruint32INSTANCE.read(reader),
+		}
 	case 2:
-		_details, err := FfiConverterTypeInvoicePaidDetailsINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return BreezEventInvoicePaid{
-			Details: _details,
-		}, nil
+			FfiConverterTypeInvoicePaidDetailsINSTANCE.read(reader),
+		}
 	case 3:
-		return BreezEventSynced{}, nil
+		return BreezEventSynced{}
 	case 4:
-		_details, err := FfiConverterTypePaymentINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return BreezEventPaymentSucceed{
-			Details: _details,
-		}, nil
+			FfiConverterTypePaymentINSTANCE.read(reader),
+		}
 	case 5:
-		_details, err := FfiConverterTypePaymentFailedDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return BreezEventPaymentFailed{
-			Details: _details,
-		}, nil
-	case 6:
-		return BreezEventBackupStarted{}, nil
-	case 7:
-		return BreezEventBackupSucceeded{}, nil
-	case 8:
-		_details, err := FfiConverterTypeBackupFailedDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
+			FfiConverterTypePaymentFailedDataINSTANCE.read(reader),
 		}
+	case 6:
+		return BreezEventBackupStarted{}
+	case 7:
+		return BreezEventBackupSucceeded{}
+	case 8:
 		return BreezEventBackupFailed{
-			Details: _details,
-		}, nil
+			FfiConverterTypeBackupFailedDataINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeBreezEvent.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeBreezEvent.read()", id))
 	}
 }
 
@@ -5193,7 +4139,7 @@ func (FfiConverterTypeBreezEvent) write(writer io.Writer, value BreezEvent) {
 
 type FfiDestroyerTypeBreezEvent struct{}
 
-func (FfiDestroyerTypeBreezEvent) destroy(value BreezEvent) {
+func (_ FfiDestroyerTypeBreezEvent) destroy(value BreezEvent) {
 	value.Destroy()
 }
 
@@ -5207,20 +4153,16 @@ type FfiConverterTypeBuyBitcoinProvider struct{}
 
 var FfiConverterTypeBuyBitcoinProviderINSTANCE = FfiConverterTypeBuyBitcoinProvider{}
 
-func (c FfiConverterTypeBuyBitcoinProvider) lift(cRustBuf C.RustBuffer) (BuyBitcoinProvider, error) {
+func (c FfiConverterTypeBuyBitcoinProvider) lift(cRustBuf C.RustBuffer) BuyBitcoinProvider {
 	return liftFromRustBuffer[BuyBitcoinProvider](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeBuyBitcoinProvider) lower(value BuyBitcoinProvider) C.RustBuffer {
 	return lowerIntoRustBuffer[BuyBitcoinProvider](c, value)
 }
-func (FfiConverterTypeBuyBitcoinProvider) read(reader io.Reader) (BuyBitcoinProvider, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue BuyBitcoinProvider
-		return _uniffiDefaultValue, err
-	}
-	return BuyBitcoinProvider(id), nil
+func (FfiConverterTypeBuyBitcoinProvider) read(reader io.Reader) BuyBitcoinProvider {
+	id := readInt32(reader)
+	return BuyBitcoinProvider(id)
 }
 
 func (FfiConverterTypeBuyBitcoinProvider) write(writer io.Writer, value BuyBitcoinProvider) {
@@ -5229,7 +4171,7 @@ func (FfiConverterTypeBuyBitcoinProvider) write(writer io.Writer, value BuyBitco
 
 type FfiDestroyerTypeBuyBitcoinProvider struct{}
 
-func (FfiDestroyerTypeBuyBitcoinProvider) destroy(value BuyBitcoinProvider) {
+func (_ FfiDestroyerTypeBuyBitcoinProvider) destroy(value BuyBitcoinProvider) {
 }
 
 type ChannelState uint
@@ -5245,20 +4187,16 @@ type FfiConverterTypeChannelState struct{}
 
 var FfiConverterTypeChannelStateINSTANCE = FfiConverterTypeChannelState{}
 
-func (c FfiConverterTypeChannelState) lift(cRustBuf C.RustBuffer) (ChannelState, error) {
+func (c FfiConverterTypeChannelState) lift(cRustBuf C.RustBuffer) ChannelState {
 	return liftFromRustBuffer[ChannelState](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeChannelState) lower(value ChannelState) C.RustBuffer {
 	return lowerIntoRustBuffer[ChannelState](c, value)
 }
-func (FfiConverterTypeChannelState) read(reader io.Reader) (ChannelState, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue ChannelState
-		return _uniffiDefaultValue, err
-	}
-	return ChannelState(id), nil
+func (FfiConverterTypeChannelState) read(reader io.Reader) ChannelState {
+	id := readInt32(reader)
+	return ChannelState(id)
 }
 
 func (FfiConverterTypeChannelState) write(writer io.Writer, value ChannelState) {
@@ -5267,7 +4205,7 @@ func (FfiConverterTypeChannelState) write(writer io.Writer, value ChannelState) 
 
 type FfiDestroyerTypeChannelState struct{}
 
-func (FfiDestroyerTypeChannelState) destroy(value ChannelState) {
+func (_ FfiDestroyerTypeChannelState) destroy(value ChannelState) {
 }
 
 type EnvironmentType uint
@@ -5281,20 +4219,16 @@ type FfiConverterTypeEnvironmentType struct{}
 
 var FfiConverterTypeEnvironmentTypeINSTANCE = FfiConverterTypeEnvironmentType{}
 
-func (c FfiConverterTypeEnvironmentType) lift(cRustBuf C.RustBuffer) (EnvironmentType, error) {
+func (c FfiConverterTypeEnvironmentType) lift(cRustBuf C.RustBuffer) EnvironmentType {
 	return liftFromRustBuffer[EnvironmentType](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeEnvironmentType) lower(value EnvironmentType) C.RustBuffer {
 	return lowerIntoRustBuffer[EnvironmentType](c, value)
 }
-func (FfiConverterTypeEnvironmentType) read(reader io.Reader) (EnvironmentType, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue EnvironmentType
-		return _uniffiDefaultValue, err
-	}
-	return EnvironmentType(id), nil
+func (FfiConverterTypeEnvironmentType) read(reader io.Reader) EnvironmentType {
+	id := readInt32(reader)
+	return EnvironmentType(id)
 }
 
 func (FfiConverterTypeEnvironmentType) write(writer io.Writer, value EnvironmentType) {
@@ -5303,7 +4237,7 @@ func (FfiConverterTypeEnvironmentType) write(writer io.Writer, value Environment
 
 type FfiDestroyerTypeEnvironmentType struct{}
 
-func (FfiDestroyerTypeEnvironmentType) destroy(value EnvironmentType) {
+func (_ FfiDestroyerTypeEnvironmentType) destroy(value EnvironmentType) {
 }
 
 type FeeratePreset uint
@@ -5318,20 +4252,16 @@ type FfiConverterTypeFeeratePreset struct{}
 
 var FfiConverterTypeFeeratePresetINSTANCE = FfiConverterTypeFeeratePreset{}
 
-func (c FfiConverterTypeFeeratePreset) lift(cRustBuf C.RustBuffer) (FeeratePreset, error) {
+func (c FfiConverterTypeFeeratePreset) lift(cRustBuf C.RustBuffer) FeeratePreset {
 	return liftFromRustBuffer[FeeratePreset](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeFeeratePreset) lower(value FeeratePreset) C.RustBuffer {
 	return lowerIntoRustBuffer[FeeratePreset](c, value)
 }
-func (FfiConverterTypeFeeratePreset) read(reader io.Reader) (FeeratePreset, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue FeeratePreset
-		return _uniffiDefaultValue, err
-	}
-	return FeeratePreset(id), nil
+func (FfiConverterTypeFeeratePreset) read(reader io.Reader) FeeratePreset {
+	id := readInt32(reader)
+	return FeeratePreset(id)
 }
 
 func (FfiConverterTypeFeeratePreset) write(writer io.Writer, value FeeratePreset) {
@@ -5340,7 +4270,7 @@ func (FfiConverterTypeFeeratePreset) write(writer io.Writer, value FeeratePreset
 
 type FfiDestroyerTypeFeeratePreset struct{}
 
-func (FfiDestroyerTypeFeeratePreset) destroy(value FeeratePreset) {
+func (_ FfiDestroyerTypeFeeratePreset) destroy(value FeeratePreset) {
 }
 
 type InputType interface {
@@ -5414,86 +4344,50 @@ type FfiConverterTypeInputType struct{}
 
 var FfiConverterTypeInputTypeINSTANCE = FfiConverterTypeInputType{}
 
-func (c FfiConverterTypeInputType) lift(cRustBuf C.RustBuffer) (InputType, error) {
+func (c FfiConverterTypeInputType) lift(cRustBuf C.RustBuffer) InputType {
 	return liftFromRustBuffer[InputType](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeInputType) lower(value InputType) C.RustBuffer {
 	return lowerIntoRustBuffer[InputType](c, value)
 }
-func (FfiConverterTypeInputType) read(reader io.Reader) (InputType, error) {
-	var _uniffiDefaultValue InputType
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeInputType) read(reader io.Reader) InputType {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_address, err := FfiConverterTypeBitcoinAddressDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeBitcoinAddress{
-			Address: _address,
-		}, nil
+			FfiConverterTypeBitcoinAddressDataINSTANCE.read(reader),
+		}
 	case 2:
-		_invoice, err := FfiConverterTypeLnInvoiceINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeBolt11{
-			Invoice: _invoice,
-		}, nil
+			FfiConverterTypeLnInvoiceINSTANCE.read(reader),
+		}
 	case 3:
-		_nodeId, err := FfiConverterstringINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeNodeId{
-			NodeId: _nodeId,
-		}, nil
+			FfiConverterstringINSTANCE.read(reader),
+		}
 	case 4:
-		_url, err := FfiConverterstringINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeUrl{
-			Url: _url,
-		}, nil
+			FfiConverterstringINSTANCE.read(reader),
+		}
 	case 5:
-		_data, err := FfiConverterTypeLnUrlPayRequestDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeLnUrlPay{
-			Data: _data,
-		}, nil
+			FfiConverterTypeLnUrlPayRequestDataINSTANCE.read(reader),
+		}
 	case 6:
-		_data, err := FfiConverterTypeLnUrlWithdrawRequestDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeLnUrlWithdraw{
-			Data: _data,
-		}, nil
+			FfiConverterTypeLnUrlWithdrawRequestDataINSTANCE.read(reader),
+		}
 	case 7:
-		_data, err := FfiConverterTypeLnUrlAuthRequestDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return InputTypeLnUrlAuth{
-			Data: _data,
-		}, nil
-	case 8:
-		_data, err := FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
+			FfiConverterTypeLnUrlAuthRequestDataINSTANCE.read(reader),
 		}
+	case 8:
 		return InputTypeLnUrlError{
-			Data: _data,
-		}, nil
+			FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeInputType.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeInputType.read()", id))
 	}
 }
 
@@ -5531,7 +4425,7 @@ func (FfiConverterTypeInputType) write(writer io.Writer, value InputType) {
 
 type FfiDestroyerTypeInputType struct{}
 
-func (FfiDestroyerTypeInputType) destroy(value InputType) {
+func (_ FfiDestroyerTypeInputType) destroy(value InputType) {
 	value.Destroy()
 }
 
@@ -5556,32 +4450,24 @@ type FfiConverterTypeLnUrlCallbackStatus struct{}
 
 var FfiConverterTypeLnUrlCallbackStatusINSTANCE = FfiConverterTypeLnUrlCallbackStatus{}
 
-func (c FfiConverterTypeLnUrlCallbackStatus) lift(cRustBuf C.RustBuffer) (LnUrlCallbackStatus, error) {
+func (c FfiConverterTypeLnUrlCallbackStatus) lift(cRustBuf C.RustBuffer) LnUrlCallbackStatus {
 	return liftFromRustBuffer[LnUrlCallbackStatus](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeLnUrlCallbackStatus) lower(value LnUrlCallbackStatus) C.RustBuffer {
 	return lowerIntoRustBuffer[LnUrlCallbackStatus](c, value)
 }
-func (FfiConverterTypeLnUrlCallbackStatus) read(reader io.Reader) (LnUrlCallbackStatus, error) {
-	var _uniffiDefaultValue LnUrlCallbackStatus
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeLnUrlCallbackStatus) read(reader io.Reader) LnUrlCallbackStatus {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		return LnUrlCallbackStatusOk{}, nil
+		return LnUrlCallbackStatusOk{}
 	case 2:
-		_data, err := FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return LnUrlCallbackStatusErrorStatus{
-			Data: _data,
-		}, nil
+			FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeLnUrlCallbackStatus.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeLnUrlCallbackStatus.read()", id))
 	}
 }
 
@@ -5600,7 +4486,7 @@ func (FfiConverterTypeLnUrlCallbackStatus) write(writer io.Writer, value LnUrlCa
 
 type FfiDestroyerTypeLnUrlCallbackStatus struct{}
 
-func (FfiDestroyerTypeLnUrlCallbackStatus) destroy(value LnUrlCallbackStatus) {
+func (_ FfiDestroyerTypeLnUrlCallbackStatus) destroy(value LnUrlCallbackStatus) {
 	value.Destroy()
 }
 
@@ -5627,38 +4513,26 @@ type FfiConverterTypeLnUrlPayResult struct{}
 
 var FfiConverterTypeLnUrlPayResultINSTANCE = FfiConverterTypeLnUrlPayResult{}
 
-func (c FfiConverterTypeLnUrlPayResult) lift(cRustBuf C.RustBuffer) (LnUrlPayResult, error) {
+func (c FfiConverterTypeLnUrlPayResult) lift(cRustBuf C.RustBuffer) LnUrlPayResult {
 	return liftFromRustBuffer[LnUrlPayResult](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeLnUrlPayResult) lower(value LnUrlPayResult) C.RustBuffer {
 	return lowerIntoRustBuffer[LnUrlPayResult](c, value)
 }
-func (FfiConverterTypeLnUrlPayResult) read(reader io.Reader) (LnUrlPayResult, error) {
-	var _uniffiDefaultValue LnUrlPayResult
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeLnUrlPayResult) read(reader io.Reader) LnUrlPayResult {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_data, err := FfiConverterOptionalTypeSuccessActionProcessedINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return LnUrlPayResultEndpointSuccess{
-			Data: _data,
-		}, nil
-	case 2:
-		_data, err := FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
+			FfiConverterOptionalTypeSuccessActionProcessedINSTANCE.read(reader),
 		}
+	case 2:
 		return LnUrlPayResultEndpointError{
-			Data: _data,
-		}, nil
+			FfiConverterTypeLnUrlErrorDataINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeLnUrlPayResult.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeLnUrlPayResult.read()", id))
 	}
 }
 
@@ -5678,7 +4552,7 @@ func (FfiConverterTypeLnUrlPayResult) write(writer io.Writer, value LnUrlPayResu
 
 type FfiDestroyerTypeLnUrlPayResult struct{}
 
-func (FfiDestroyerTypeLnUrlPayResult) destroy(value LnUrlPayResult) {
+func (_ FfiDestroyerTypeLnUrlPayResult) destroy(value LnUrlPayResult) {
 	value.Destroy()
 }
 
@@ -5695,20 +4569,16 @@ type FfiConverterTypeNetwork struct{}
 
 var FfiConverterTypeNetworkINSTANCE = FfiConverterTypeNetwork{}
 
-func (c FfiConverterTypeNetwork) lift(cRustBuf C.RustBuffer) (Network, error) {
+func (c FfiConverterTypeNetwork) lift(cRustBuf C.RustBuffer) Network {
 	return liftFromRustBuffer[Network](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeNetwork) lower(value Network) C.RustBuffer {
 	return lowerIntoRustBuffer[Network](c, value)
 }
-func (FfiConverterTypeNetwork) read(reader io.Reader) (Network, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue Network
-		return _uniffiDefaultValue, err
-	}
-	return Network(id), nil
+func (FfiConverterTypeNetwork) read(reader io.Reader) Network {
+	id := readInt32(reader)
+	return Network(id)
 }
 
 func (FfiConverterTypeNetwork) write(writer io.Writer, value Network) {
@@ -5717,7 +4587,7 @@ func (FfiConverterTypeNetwork) write(writer io.Writer, value Network) {
 
 type FfiDestroyerTypeNetwork struct{}
 
-func (FfiDestroyerTypeNetwork) destroy(value Network) {
+func (_ FfiDestroyerTypeNetwork) destroy(value Network) {
 }
 
 type NodeConfig interface {
@@ -5735,30 +4605,22 @@ type FfiConverterTypeNodeConfig struct{}
 
 var FfiConverterTypeNodeConfigINSTANCE = FfiConverterTypeNodeConfig{}
 
-func (c FfiConverterTypeNodeConfig) lift(cRustBuf C.RustBuffer) (NodeConfig, error) {
+func (c FfiConverterTypeNodeConfig) lift(cRustBuf C.RustBuffer) NodeConfig {
 	return liftFromRustBuffer[NodeConfig](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeNodeConfig) lower(value NodeConfig) C.RustBuffer {
 	return lowerIntoRustBuffer[NodeConfig](c, value)
 }
-func (FfiConverterTypeNodeConfig) read(reader io.Reader) (NodeConfig, error) {
-	var _uniffiDefaultValue NodeConfig
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeNodeConfig) read(reader io.Reader) NodeConfig {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_config, err := FfiConverterTypeGreenlightNodeConfigINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return NodeConfigGreenlight{
-			Config: _config,
-		}, nil
+			FfiConverterTypeGreenlightNodeConfigINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeNodeConfig.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeNodeConfig.read()", id))
 	}
 }
 
@@ -5775,7 +4637,7 @@ func (FfiConverterTypeNodeConfig) write(writer io.Writer, value NodeConfig) {
 
 type FfiDestroyerTypeNodeConfig struct{}
 
-func (FfiDestroyerTypeNodeConfig) destroy(value NodeConfig) {
+func (_ FfiDestroyerTypeNodeConfig) destroy(value NodeConfig) {
 	value.Destroy()
 }
 
@@ -5802,38 +4664,26 @@ type FfiConverterTypePaymentDetails struct{}
 
 var FfiConverterTypePaymentDetailsINSTANCE = FfiConverterTypePaymentDetails{}
 
-func (c FfiConverterTypePaymentDetails) lift(cRustBuf C.RustBuffer) (PaymentDetails, error) {
+func (c FfiConverterTypePaymentDetails) lift(cRustBuf C.RustBuffer) PaymentDetails {
 	return liftFromRustBuffer[PaymentDetails](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypePaymentDetails) lower(value PaymentDetails) C.RustBuffer {
 	return lowerIntoRustBuffer[PaymentDetails](c, value)
 }
-func (FfiConverterTypePaymentDetails) read(reader io.Reader) (PaymentDetails, error) {
-	var _uniffiDefaultValue PaymentDetails
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypePaymentDetails) read(reader io.Reader) PaymentDetails {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_data, err := FfiConverterTypeLnPaymentDetailsINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return PaymentDetailsLn{
-			Data: _data,
-		}, nil
-	case 2:
-		_data, err := FfiConverterTypeClosedChannelPaymentDetailsINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
+			FfiConverterTypeLnPaymentDetailsINSTANCE.read(reader),
 		}
+	case 2:
 		return PaymentDetailsClosedChannel{
-			Data: _data,
-		}, nil
+			FfiConverterTypeClosedChannelPaymentDetailsINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypePaymentDetails.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypePaymentDetails.read()", id))
 	}
 }
 
@@ -5853,7 +4703,7 @@ func (FfiConverterTypePaymentDetails) write(writer io.Writer, value PaymentDetai
 
 type FfiDestroyerTypePaymentDetails struct{}
 
-func (FfiDestroyerTypePaymentDetails) destroy(value PaymentDetails) {
+func (_ FfiDestroyerTypePaymentDetails) destroy(value PaymentDetails) {
 	value.Destroy()
 }
 
@@ -5869,20 +4719,16 @@ type FfiConverterTypePaymentType struct{}
 
 var FfiConverterTypePaymentTypeINSTANCE = FfiConverterTypePaymentType{}
 
-func (c FfiConverterTypePaymentType) lift(cRustBuf C.RustBuffer) (PaymentType, error) {
+func (c FfiConverterTypePaymentType) lift(cRustBuf C.RustBuffer) PaymentType {
 	return liftFromRustBuffer[PaymentType](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypePaymentType) lower(value PaymentType) C.RustBuffer {
 	return lowerIntoRustBuffer[PaymentType](c, value)
 }
-func (FfiConverterTypePaymentType) read(reader io.Reader) (PaymentType, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue PaymentType
-		return _uniffiDefaultValue, err
-	}
-	return PaymentType(id), nil
+func (FfiConverterTypePaymentType) read(reader io.Reader) PaymentType {
+	id := readInt32(reader)
+	return PaymentType(id)
 }
 
 func (FfiConverterTypePaymentType) write(writer io.Writer, value PaymentType) {
@@ -5891,7 +4737,7 @@ func (FfiConverterTypePaymentType) write(writer io.Writer, value PaymentType) {
 
 type FfiDestroyerTypePaymentType struct{}
 
-func (FfiDestroyerTypePaymentType) destroy(value PaymentType) {
+func (_ FfiDestroyerTypePaymentType) destroy(value PaymentType) {
 }
 
 type PaymentTypeFilter uint
@@ -5906,20 +4752,16 @@ type FfiConverterTypePaymentTypeFilter struct{}
 
 var FfiConverterTypePaymentTypeFilterINSTANCE = FfiConverterTypePaymentTypeFilter{}
 
-func (c FfiConverterTypePaymentTypeFilter) lift(cRustBuf C.RustBuffer) (PaymentTypeFilter, error) {
+func (c FfiConverterTypePaymentTypeFilter) lift(cRustBuf C.RustBuffer) PaymentTypeFilter {
 	return liftFromRustBuffer[PaymentTypeFilter](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypePaymentTypeFilter) lower(value PaymentTypeFilter) C.RustBuffer {
 	return lowerIntoRustBuffer[PaymentTypeFilter](c, value)
 }
-func (FfiConverterTypePaymentTypeFilter) read(reader io.Reader) (PaymentTypeFilter, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue PaymentTypeFilter
-		return _uniffiDefaultValue, err
-	}
-	return PaymentTypeFilter(id), nil
+func (FfiConverterTypePaymentTypeFilter) read(reader io.Reader) PaymentTypeFilter {
+	id := readInt32(reader)
+	return PaymentTypeFilter(id)
 }
 
 func (FfiConverterTypePaymentTypeFilter) write(writer io.Writer, value PaymentTypeFilter) {
@@ -5928,7 +4770,7 @@ func (FfiConverterTypePaymentTypeFilter) write(writer io.Writer, value PaymentTy
 
 type FfiDestroyerTypePaymentTypeFilter struct{}
 
-func (FfiDestroyerTypePaymentTypeFilter) destroy(value PaymentTypeFilter) {
+func (_ FfiDestroyerTypePaymentTypeFilter) destroy(value PaymentTypeFilter) {
 }
 
 type ReverseSwapStatus uint
@@ -5945,20 +4787,16 @@ type FfiConverterTypeReverseSwapStatus struct{}
 
 var FfiConverterTypeReverseSwapStatusINSTANCE = FfiConverterTypeReverseSwapStatus{}
 
-func (c FfiConverterTypeReverseSwapStatus) lift(cRustBuf C.RustBuffer) (ReverseSwapStatus, error) {
+func (c FfiConverterTypeReverseSwapStatus) lift(cRustBuf C.RustBuffer) ReverseSwapStatus {
 	return liftFromRustBuffer[ReverseSwapStatus](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeReverseSwapStatus) lower(value ReverseSwapStatus) C.RustBuffer {
 	return lowerIntoRustBuffer[ReverseSwapStatus](c, value)
 }
-func (FfiConverterTypeReverseSwapStatus) read(reader io.Reader) (ReverseSwapStatus, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue ReverseSwapStatus
-		return _uniffiDefaultValue, err
-	}
-	return ReverseSwapStatus(id), nil
+func (FfiConverterTypeReverseSwapStatus) read(reader io.Reader) ReverseSwapStatus {
+	id := readInt32(reader)
+	return ReverseSwapStatus(id)
 }
 
 func (FfiConverterTypeReverseSwapStatus) write(writer io.Writer, value ReverseSwapStatus) {
@@ -5967,7 +4805,7 @@ func (FfiConverterTypeReverseSwapStatus) write(writer io.Writer, value ReverseSw
 
 type FfiDestroyerTypeReverseSwapStatus struct{}
 
-func (FfiDestroyerTypeReverseSwapStatus) destroy(value ReverseSwapStatus) {
+func (_ FfiDestroyerTypeReverseSwapStatus) destroy(value ReverseSwapStatus) {
 }
 
 type SuccessActionProcessed interface {
@@ -6001,46 +4839,30 @@ type FfiConverterTypeSuccessActionProcessed struct{}
 
 var FfiConverterTypeSuccessActionProcessedINSTANCE = FfiConverterTypeSuccessActionProcessed{}
 
-func (c FfiConverterTypeSuccessActionProcessed) lift(cRustBuf C.RustBuffer) (SuccessActionProcessed, error) {
+func (c FfiConverterTypeSuccessActionProcessed) lift(cRustBuf C.RustBuffer) SuccessActionProcessed {
 	return liftFromRustBuffer[SuccessActionProcessed](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeSuccessActionProcessed) lower(value SuccessActionProcessed) C.RustBuffer {
 	return lowerIntoRustBuffer[SuccessActionProcessed](c, value)
 }
-func (FfiConverterTypeSuccessActionProcessed) read(reader io.Reader) (SuccessActionProcessed, error) {
-	var _uniffiDefaultValue SuccessActionProcessed
-	id, err := readInt32(reader)
-	if err != nil {
-		return _uniffiDefaultValue, err
-	}
+func (FfiConverterTypeSuccessActionProcessed) read(reader io.Reader) SuccessActionProcessed {
+	id := readInt32(reader)
 	switch id {
 	case 1:
-		_data, err := FfiConverterTypeAesSuccessActionDataDecryptedINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return SuccessActionProcessedAes{
-			Data: _data,
-		}, nil
+			FfiConverterTypeAesSuccessActionDataDecryptedINSTANCE.read(reader),
+		}
 	case 2:
-		_data, err := FfiConverterTypeMessageSuccessActionDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
 		return SuccessActionProcessedMessage{
-			Data: _data,
-		}, nil
-	case 3:
-		_data, err := FfiConverterTypeUrlSuccessActionDataINSTANCE.read(reader)
-		if err != nil {
-			return _uniffiDefaultValue, err
+			FfiConverterTypeMessageSuccessActionDataINSTANCE.read(reader),
 		}
+	case 3:
 		return SuccessActionProcessedUrl{
-			Data: _data,
-		}, nil
+			FfiConverterTypeUrlSuccessActionDataINSTANCE.read(reader),
+		}
 	default:
-		return nil, fmt.Errorf("invalid enum value %v in FfiConverterTypeSuccessActionProcessed.read()", id)
+		panic(fmt.Sprintf("invalid enum value %v in FfiConverterTypeSuccessActionProcessed.read()", id))
 	}
 }
 
@@ -6063,7 +4885,7 @@ func (FfiConverterTypeSuccessActionProcessed) write(writer io.Writer, value Succ
 
 type FfiDestroyerTypeSuccessActionProcessed struct{}
 
-func (FfiDestroyerTypeSuccessActionProcessed) destroy(value SuccessActionProcessed) {
+func (_ FfiDestroyerTypeSuccessActionProcessed) destroy(value SuccessActionProcessed) {
 	value.Destroy()
 }
 
@@ -6078,20 +4900,16 @@ type FfiConverterTypeSwapStatus struct{}
 
 var FfiConverterTypeSwapStatusINSTANCE = FfiConverterTypeSwapStatus{}
 
-func (c FfiConverterTypeSwapStatus) lift(cRustBuf C.RustBuffer) (SwapStatus, error) {
+func (c FfiConverterTypeSwapStatus) lift(cRustBuf C.RustBuffer) SwapStatus {
 	return liftFromRustBuffer[SwapStatus](c, fromCRustBuffer(cRustBuf))
 }
 
 func (c FfiConverterTypeSwapStatus) lower(value SwapStatus) C.RustBuffer {
 	return lowerIntoRustBuffer[SwapStatus](c, value)
 }
-func (FfiConverterTypeSwapStatus) read(reader io.Reader) (SwapStatus, error) {
-	id, err := readInt32(reader)
-	if err != nil {
-		var _uniffiDefaultValue SwapStatus
-		return _uniffiDefaultValue, err
-	}
-	return SwapStatus(id), nil
+func (FfiConverterTypeSwapStatus) read(reader io.Reader) SwapStatus {
+	id := readInt32(reader)
+	return SwapStatus(id)
 }
 
 func (FfiConverterTypeSwapStatus) write(writer io.Writer, value SwapStatus) {
@@ -6100,7 +4918,7 @@ func (FfiConverterTypeSwapStatus) write(writer io.Writer, value SwapStatus) {
 
 type FfiDestroyerTypeSwapStatus struct{}
 
-func (FfiDestroyerTypeSwapStatus) destroy(value SwapStatus) {
+func (_ FfiDestroyerTypeSwapStatus) destroy(value SwapStatus) {
 }
 
 type SdkError struct {
@@ -6140,7 +4958,7 @@ func (err SdkErrorGeneric) Error() string {
 	return fmt.Sprintf("Generic: %s", err.message)
 }
 
-func (err SdkErrorGeneric) Is(target error) bool {
+func (self SdkErrorGeneric) Is(target error) bool {
 	return target == ErrSdkErrorGeneric
 }
 
@@ -6158,7 +4976,7 @@ func (err SdkErrorInitFailed) Error() string {
 	return fmt.Sprintf("InitFailed: %s", err.message)
 }
 
-func (err SdkErrorInitFailed) Is(target error) bool {
+func (self SdkErrorInitFailed) Is(target error) bool {
 	return target == ErrSdkErrorInitFailed
 }
 
@@ -6176,7 +4994,7 @@ func (err SdkErrorNotReady) Error() string {
 	return fmt.Sprintf("NotReady: %s", err.message)
 }
 
-func (err SdkErrorNotReady) Is(target error) bool {
+func (self SdkErrorNotReady) Is(target error) bool {
 	return target == ErrSdkErrorNotReady
 }
 
@@ -6194,7 +5012,7 @@ func (err SdkErrorLspConnectFailed) Error() string {
 	return fmt.Sprintf("LspConnectFailed: %s", err.message)
 }
 
-func (err SdkErrorLspConnectFailed) Is(target error) bool {
+func (self SdkErrorLspConnectFailed) Is(target error) bool {
 	return target == ErrSdkErrorLspConnectFailed
 }
 
@@ -6212,7 +5030,7 @@ func (err SdkErrorLspOpenChannelNotSupported) Error() string {
 	return fmt.Sprintf("LspOpenChannelNotSupported: %s", err.message)
 }
 
-func (err SdkErrorLspOpenChannelNotSupported) Is(target error) bool {
+func (self SdkErrorLspOpenChannelNotSupported) Is(target error) bool {
 	return target == ErrSdkErrorLspOpenChannelNotSupported
 }
 
@@ -6230,7 +5048,7 @@ func (err SdkErrorPersistenceFailure) Error() string {
 	return fmt.Sprintf("PersistenceFailure: %s", err.message)
 }
 
-func (err SdkErrorPersistenceFailure) Is(target error) bool {
+func (self SdkErrorPersistenceFailure) Is(target error) bool {
 	return target == ErrSdkErrorPersistenceFailure
 }
 
@@ -6248,7 +5066,7 @@ func (err SdkErrorReceivePaymentFailed) Error() string {
 	return fmt.Sprintf("ReceivePaymentFailed: %s", err.message)
 }
 
-func (err SdkErrorReceivePaymentFailed) Is(target error) bool {
+func (self SdkErrorReceivePaymentFailed) Is(target error) bool {
 	return target == ErrSdkErrorReceivePaymentFailed
 }
 
@@ -6266,7 +5084,7 @@ func (err SdkErrorCalculateOpenChannelFeesFailed) Error() string {
 	return fmt.Sprintf("CalculateOpenChannelFeesFailed: %s", err.message)
 }
 
-func (err SdkErrorCalculateOpenChannelFeesFailed) Is(target error) bool {
+func (self SdkErrorCalculateOpenChannelFeesFailed) Is(target error) bool {
 	return target == ErrSdkErrorCalculateOpenChannelFeesFailed
 }
 
@@ -6274,7 +5092,7 @@ type FfiConverterTypeSdkError struct{}
 
 var FfiConverterTypeSdkErrorINSTANCE = FfiConverterTypeSdkError{}
 
-func (c FfiConverterTypeSdkError) lift(cErrBuf C.RustBuffer) (error, error) {
+func (c FfiConverterTypeSdkError) lift(cErrBuf C.RustBuffer) error {
 	errBuf := fromCRustBuffer(cErrBuf)
 	return liftFromRustBuffer[error](c, errBuf)
 }
@@ -6283,35 +5101,29 @@ func (c FfiConverterTypeSdkError) lower(value *SdkError) C.RustBuffer {
 	return lowerIntoRustBuffer[*SdkError](c, value)
 }
 
-func (c FfiConverterTypeSdkError) read(reader io.Reader) (error, error) {
-	errorID, err := readUint32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterTypeSdkError) read(reader io.Reader) error {
+	errorID := readUint32(reader)
 
-	message, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
+	message := FfiConverterstringINSTANCE.read(reader)
 	switch errorID {
 	case 1:
-		return &SdkError{&SdkErrorGeneric{message}}, nil
+		return &SdkError{&SdkErrorGeneric{message}}
 	case 2:
-		return &SdkError{&SdkErrorInitFailed{message}}, nil
+		return &SdkError{&SdkErrorInitFailed{message}}
 	case 3:
-		return &SdkError{&SdkErrorNotReady{message}}, nil
+		return &SdkError{&SdkErrorNotReady{message}}
 	case 4:
-		return &SdkError{&SdkErrorLspConnectFailed{message}}, nil
+		return &SdkError{&SdkErrorLspConnectFailed{message}}
 	case 5:
-		return &SdkError{&SdkErrorLspOpenChannelNotSupported{message}}, nil
+		return &SdkError{&SdkErrorLspOpenChannelNotSupported{message}}
 	case 6:
-		return &SdkError{&SdkErrorPersistenceFailure{message}}, nil
+		return &SdkError{&SdkErrorPersistenceFailure{message}}
 	case 7:
-		return &SdkError{&SdkErrorReceivePaymentFailed{message}}, nil
+		return &SdkError{&SdkErrorReceivePaymentFailed{message}}
 	case 8:
-		return &SdkError{&SdkErrorCalculateOpenChannelFeesFailed{message}}, nil
+		return &SdkError{&SdkErrorCalculateOpenChannelFeesFailed{message}}
 	default:
-		return nil, fmt.Errorf("unknown error code %d in FfiConverterTypeSdkError.read()", errorID)
+		panic(fmt.Sprintf("Unknown error code %d in FfiConverterTypeSdkError.read()", errorID))
 	}
 
 }
@@ -6399,22 +5211,16 @@ func (c *FfiConverterCallbackInterface[CallbackInterface]) drop(handle uint64) r
 	return rustBuffer{}
 }
 
-func (c *FfiConverterCallbackInterface[CallbackInterface]) lift(handle uint64) (CallbackInterface, error) {
+func (c *FfiConverterCallbackInterface[CallbackInterface]) lift(handle uint64) CallbackInterface {
 	val, ok := c.handleMap.tryGet(handle)
 	if !ok {
-		var _uniffiDefaultValue CallbackInterface
-		return _uniffiDefaultValue, fmt.Errorf("no callback in handle map: %d", handle)
+		panic(fmt.Errorf("no callback in handle map: %d", handle))
 	}
-	return *val, nil
+	return *val
 }
 
-func (c *FfiConverterCallbackInterface[CallbackInterface]) read(reader io.Reader) (CallbackInterface, error) {
-	readValue, err := readUint64(reader)
-	if err != nil {
-		var _uniffiDefaultValue CallbackInterface
-		return _uniffiDefaultValue, err
-	}
-	return c.lift(readValue)
+func (c *FfiConverterCallbackInterface[CallbackInterface]) read(reader io.Reader) CallbackInterface {
+	return c.lift(readUint64(reader))
 }
 
 func (c *FfiConverterCallbackInterface[CallbackInterface]) lower(value CallbackInterface) C.uint64_t {
@@ -6435,7 +5241,7 @@ type foreignCallbackTypeEventListener struct{}
 
 //export breez_sdk_d634_cgo_EventListener
 func breez_sdk_d634_cgo_EventListener(handle C.uint64_t, method C.int32_t, args C.RustBuffer, outBuf *C.RustBuffer) C.int32_t {
-	cb, _ := FfiConverterTypeEventListenerINSTANCE.lift(uint64(handle))
+	cb := FfiConverterTypeEventListenerINSTANCE.lift(uint64(handle))
 	switch method {
 	case 0:
 		// 0 means Rust is done with the callback, and the callback
@@ -6463,8 +5269,7 @@ func breez_sdk_d634_cgo_EventListener(handle C.uint64_t, method C.int32_t, args 
 func (foreignCallbackTypeEventListener) InvokeOnEvent(callback EventListener, args rustBuffer) (uniffiCallbackResult, C.RustBuffer) {
 	defer args.free()
 	reader := args.asReader()
-	_e, _ := FfiConverterTypeBreezEventINSTANCE.read(reader)
-	callback.OnEvent(_e)
+	callback.OnEvent(FfiConverterTypeBreezEventINSTANCE.read(reader))
 
 	return uniffiCallbackResultSuccess, rustBuffer{}.asCRustBuffer()
 }
@@ -6502,7 +5307,7 @@ type foreignCallbackTypeLogStream struct{}
 
 //export breez_sdk_d634_cgo_LogStream
 func breez_sdk_d634_cgo_LogStream(handle C.uint64_t, method C.int32_t, args C.RustBuffer, outBuf *C.RustBuffer) C.int32_t {
-	cb, _ := FfiConverterTypeLogStreamINSTANCE.lift(uint64(handle))
+	cb := FfiConverterTypeLogStreamINSTANCE.lift(uint64(handle))
 	switch method {
 	case 0:
 		// 0 means Rust is done with the callback, and the callback
@@ -6530,8 +5335,7 @@ func breez_sdk_d634_cgo_LogStream(handle C.uint64_t, method C.int32_t, args C.Ru
 func (foreignCallbackTypeLogStream) InvokeLog(callback LogStream, args rustBuffer) (uniffiCallbackResult, C.RustBuffer) {
 	defer args.free()
 	reader := args.asReader()
-	_l, _ := FfiConverterTypeLogEntryINSTANCE.read(reader)
-	callback.Log(_l)
+	callback.Log(FfiConverterTypeLogEntryINSTANCE.read(reader))
 
 	return uniffiCallbackResultSuccess, rustBuffer{}.asCRustBuffer()
 }
@@ -6563,30 +5367,23 @@ type FfiConverterOptionaluint32 struct{}
 
 var FfiConverterOptionaluint32INSTANCE = FfiConverterOptionaluint32{}
 
-func (c FfiConverterOptionaluint32) lift(cRustBuf C.RustBuffer) (*uint32, error) {
+func (c FfiConverterOptionaluint32) lift(cRustBuf C.RustBuffer) *uint32 {
 	return liftFromRustBuffer[*uint32](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionaluint32) read(reader io.Reader) (*uint32, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionaluint32) read(reader io.Reader) *uint32 {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverteruint32INSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverteruint32INSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionaluint32) lower(value *uint32) C.RustBuffer {
 	return lowerIntoRustBuffer[*uint32](c, value)
 }
 
-func (FfiConverterOptionaluint32) write(writer io.Writer, value *uint32) {
+func (_ FfiConverterOptionaluint32) write(writer io.Writer, value *uint32) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6597,7 +5394,7 @@ func (FfiConverterOptionaluint32) write(writer io.Writer, value *uint32) {
 
 type FfiDestroyerOptionaluint32 struct{}
 
-func (FfiDestroyerOptionaluint32) destroy(value *uint32) {
+func (_ FfiDestroyerOptionaluint32) destroy(value *uint32) {
 	if value != nil {
 		FfiDestroyeruint32{}.destroy(*value)
 	}
@@ -6607,30 +5404,23 @@ type FfiConverterOptionaluint64 struct{}
 
 var FfiConverterOptionaluint64INSTANCE = FfiConverterOptionaluint64{}
 
-func (c FfiConverterOptionaluint64) lift(cRustBuf C.RustBuffer) (*uint64, error) {
+func (c FfiConverterOptionaluint64) lift(cRustBuf C.RustBuffer) *uint64 {
 	return liftFromRustBuffer[*uint64](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionaluint64) read(reader io.Reader) (*uint64, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionaluint64) read(reader io.Reader) *uint64 {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverteruint64INSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverteruint64INSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionaluint64) lower(value *uint64) C.RustBuffer {
 	return lowerIntoRustBuffer[*uint64](c, value)
 }
 
-func (FfiConverterOptionaluint64) write(writer io.Writer, value *uint64) {
+func (_ FfiConverterOptionaluint64) write(writer io.Writer, value *uint64) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6641,7 +5431,7 @@ func (FfiConverterOptionaluint64) write(writer io.Writer, value *uint64) {
 
 type FfiDestroyerOptionaluint64 struct{}
 
-func (FfiDestroyerOptionaluint64) destroy(value *uint64) {
+func (_ FfiDestroyerOptionaluint64) destroy(value *uint64) {
 	if value != nil {
 		FfiDestroyeruint64{}.destroy(*value)
 	}
@@ -6651,30 +5441,23 @@ type FfiConverterOptionalint64 struct{}
 
 var FfiConverterOptionalint64INSTANCE = FfiConverterOptionalint64{}
 
-func (c FfiConverterOptionalint64) lift(cRustBuf C.RustBuffer) (*int64, error) {
+func (c FfiConverterOptionalint64) lift(cRustBuf C.RustBuffer) *int64 {
 	return liftFromRustBuffer[*int64](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalint64) read(reader io.Reader) (*int64, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalint64) read(reader io.Reader) *int64 {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterint64INSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterint64INSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalint64) lower(value *int64) C.RustBuffer {
 	return lowerIntoRustBuffer[*int64](c, value)
 }
 
-func (FfiConverterOptionalint64) write(writer io.Writer, value *int64) {
+func (_ FfiConverterOptionalint64) write(writer io.Writer, value *int64) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6685,7 +5468,7 @@ func (FfiConverterOptionalint64) write(writer io.Writer, value *int64) {
 
 type FfiDestroyerOptionalint64 struct{}
 
-func (FfiDestroyerOptionalint64) destroy(value *int64) {
+func (_ FfiDestroyerOptionalint64) destroy(value *int64) {
 	if value != nil {
 		FfiDestroyerint64{}.destroy(*value)
 	}
@@ -6695,30 +5478,23 @@ type FfiConverterOptionalbool struct{}
 
 var FfiConverterOptionalboolINSTANCE = FfiConverterOptionalbool{}
 
-func (c FfiConverterOptionalbool) lift(cRustBuf C.RustBuffer) (*bool, error) {
+func (c FfiConverterOptionalbool) lift(cRustBuf C.RustBuffer) *bool {
 	return liftFromRustBuffer[*bool](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalbool) read(reader io.Reader) (*bool, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalbool) read(reader io.Reader) *bool {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterboolINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterboolINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalbool) lower(value *bool) C.RustBuffer {
 	return lowerIntoRustBuffer[*bool](c, value)
 }
 
-func (FfiConverterOptionalbool) write(writer io.Writer, value *bool) {
+func (_ FfiConverterOptionalbool) write(writer io.Writer, value *bool) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6729,7 +5505,7 @@ func (FfiConverterOptionalbool) write(writer io.Writer, value *bool) {
 
 type FfiDestroyerOptionalbool struct{}
 
-func (FfiDestroyerOptionalbool) destroy(value *bool) {
+func (_ FfiDestroyerOptionalbool) destroy(value *bool) {
 	if value != nil {
 		FfiDestroyerbool{}.destroy(*value)
 	}
@@ -6739,30 +5515,23 @@ type FfiConverterOptionalstring struct{}
 
 var FfiConverterOptionalstringINSTANCE = FfiConverterOptionalstring{}
 
-func (c FfiConverterOptionalstring) lift(cRustBuf C.RustBuffer) (*string, error) {
+func (c FfiConverterOptionalstring) lift(cRustBuf C.RustBuffer) *string {
 	return liftFromRustBuffer[*string](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalstring) read(reader io.Reader) (*string, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalstring) read(reader io.Reader) *string {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterstringINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterstringINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalstring) lower(value *string) C.RustBuffer {
 	return lowerIntoRustBuffer[*string](c, value)
 }
 
-func (FfiConverterOptionalstring) write(writer io.Writer, value *string) {
+func (_ FfiConverterOptionalstring) write(writer io.Writer, value *string) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6773,7 +5542,7 @@ func (FfiConverterOptionalstring) write(writer io.Writer, value *string) {
 
 type FfiDestroyerOptionalstring struct{}
 
-func (FfiDestroyerOptionalstring) destroy(value *string) {
+func (_ FfiDestroyerOptionalstring) destroy(value *string) {
 	if value != nil {
 		FfiDestroyerstring{}.destroy(*value)
 	}
@@ -6783,30 +5552,23 @@ type FfiConverterOptionalTypeGreenlightCredentials struct{}
 
 var FfiConverterOptionalTypeGreenlightCredentialsINSTANCE = FfiConverterOptionalTypeGreenlightCredentials{}
 
-func (c FfiConverterOptionalTypeGreenlightCredentials) lift(cRustBuf C.RustBuffer) (*GreenlightCredentials, error) {
+func (c FfiConverterOptionalTypeGreenlightCredentials) lift(cRustBuf C.RustBuffer) *GreenlightCredentials {
 	return liftFromRustBuffer[*GreenlightCredentials](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeGreenlightCredentials) read(reader io.Reader) (*GreenlightCredentials, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeGreenlightCredentials) read(reader io.Reader) *GreenlightCredentials {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeGreenlightCredentialsINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeGreenlightCredentialsINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeGreenlightCredentials) lower(value *GreenlightCredentials) C.RustBuffer {
 	return lowerIntoRustBuffer[*GreenlightCredentials](c, value)
 }
 
-func (FfiConverterOptionalTypeGreenlightCredentials) write(writer io.Writer, value *GreenlightCredentials) {
+func (_ FfiConverterOptionalTypeGreenlightCredentials) write(writer io.Writer, value *GreenlightCredentials) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6817,7 +5579,7 @@ func (FfiConverterOptionalTypeGreenlightCredentials) write(writer io.Writer, val
 
 type FfiDestroyerOptionalTypeGreenlightCredentials struct{}
 
-func (FfiDestroyerOptionalTypeGreenlightCredentials) destroy(value *GreenlightCredentials) {
+func (_ FfiDestroyerOptionalTypeGreenlightCredentials) destroy(value *GreenlightCredentials) {
 	if value != nil {
 		FfiDestroyerTypeGreenlightCredentials{}.destroy(*value)
 	}
@@ -6827,30 +5589,23 @@ type FfiConverterOptionalTypeLnInvoice struct{}
 
 var FfiConverterOptionalTypeLnInvoiceINSTANCE = FfiConverterOptionalTypeLnInvoice{}
 
-func (c FfiConverterOptionalTypeLnInvoice) lift(cRustBuf C.RustBuffer) (*LnInvoice, error) {
+func (c FfiConverterOptionalTypeLnInvoice) lift(cRustBuf C.RustBuffer) *LnInvoice {
 	return liftFromRustBuffer[*LnInvoice](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeLnInvoice) read(reader io.Reader) (*LnInvoice, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeLnInvoice) read(reader io.Reader) *LnInvoice {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeLnInvoiceINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeLnInvoiceINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeLnInvoice) lower(value *LnInvoice) C.RustBuffer {
 	return lowerIntoRustBuffer[*LnInvoice](c, value)
 }
 
-func (FfiConverterOptionalTypeLnInvoice) write(writer io.Writer, value *LnInvoice) {
+func (_ FfiConverterOptionalTypeLnInvoice) write(writer io.Writer, value *LnInvoice) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6861,7 +5616,7 @@ func (FfiConverterOptionalTypeLnInvoice) write(writer io.Writer, value *LnInvoic
 
 type FfiDestroyerOptionalTypeLnInvoice struct{}
 
-func (FfiDestroyerOptionalTypeLnInvoice) destroy(value *LnInvoice) {
+func (_ FfiDestroyerOptionalTypeLnInvoice) destroy(value *LnInvoice) {
 	if value != nil {
 		FfiDestroyerTypeLnInvoice{}.destroy(*value)
 	}
@@ -6871,30 +5626,23 @@ type FfiConverterOptionalTypeLspInformation struct{}
 
 var FfiConverterOptionalTypeLspInformationINSTANCE = FfiConverterOptionalTypeLspInformation{}
 
-func (c FfiConverterOptionalTypeLspInformation) lift(cRustBuf C.RustBuffer) (*LspInformation, error) {
+func (c FfiConverterOptionalTypeLspInformation) lift(cRustBuf C.RustBuffer) *LspInformation {
 	return liftFromRustBuffer[*LspInformation](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeLspInformation) read(reader io.Reader) (*LspInformation, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeLspInformation) read(reader io.Reader) *LspInformation {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeLspInformationINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeLspInformationINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeLspInformation) lower(value *LspInformation) C.RustBuffer {
 	return lowerIntoRustBuffer[*LspInformation](c, value)
 }
 
-func (FfiConverterOptionalTypeLspInformation) write(writer io.Writer, value *LspInformation) {
+func (_ FfiConverterOptionalTypeLspInformation) write(writer io.Writer, value *LspInformation) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6905,7 +5653,7 @@ func (FfiConverterOptionalTypeLspInformation) write(writer io.Writer, value *Lsp
 
 type FfiDestroyerOptionalTypeLspInformation struct{}
 
-func (FfiDestroyerOptionalTypeLspInformation) destroy(value *LspInformation) {
+func (_ FfiDestroyerOptionalTypeLspInformation) destroy(value *LspInformation) {
 	if value != nil {
 		FfiDestroyerTypeLspInformation{}.destroy(*value)
 	}
@@ -6915,30 +5663,23 @@ type FfiConverterOptionalTypeOpeningFeeParams struct{}
 
 var FfiConverterOptionalTypeOpeningFeeParamsINSTANCE = FfiConverterOptionalTypeOpeningFeeParams{}
 
-func (c FfiConverterOptionalTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) (*OpeningFeeParams, error) {
+func (c FfiConverterOptionalTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) *OpeningFeeParams {
 	return liftFromRustBuffer[*OpeningFeeParams](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeOpeningFeeParams) read(reader io.Reader) (*OpeningFeeParams, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeOpeningFeeParams) read(reader io.Reader) *OpeningFeeParams {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeOpeningFeeParamsINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeOpeningFeeParamsINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeOpeningFeeParams) lower(value *OpeningFeeParams) C.RustBuffer {
 	return lowerIntoRustBuffer[*OpeningFeeParams](c, value)
 }
 
-func (FfiConverterOptionalTypeOpeningFeeParams) write(writer io.Writer, value *OpeningFeeParams) {
+func (_ FfiConverterOptionalTypeOpeningFeeParams) write(writer io.Writer, value *OpeningFeeParams) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6949,7 +5690,7 @@ func (FfiConverterOptionalTypeOpeningFeeParams) write(writer io.Writer, value *O
 
 type FfiDestroyerOptionalTypeOpeningFeeParams struct{}
 
-func (FfiDestroyerOptionalTypeOpeningFeeParams) destroy(value *OpeningFeeParams) {
+func (_ FfiDestroyerOptionalTypeOpeningFeeParams) destroy(value *OpeningFeeParams) {
 	if value != nil {
 		FfiDestroyerTypeOpeningFeeParams{}.destroy(*value)
 	}
@@ -6959,30 +5700,23 @@ type FfiConverterOptionalTypePayment struct{}
 
 var FfiConverterOptionalTypePaymentINSTANCE = FfiConverterOptionalTypePayment{}
 
-func (c FfiConverterOptionalTypePayment) lift(cRustBuf C.RustBuffer) (*Payment, error) {
+func (c FfiConverterOptionalTypePayment) lift(cRustBuf C.RustBuffer) *Payment {
 	return liftFromRustBuffer[*Payment](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypePayment) read(reader io.Reader) (*Payment, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypePayment) read(reader io.Reader) *Payment {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypePaymentINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypePaymentINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypePayment) lower(value *Payment) C.RustBuffer {
 	return lowerIntoRustBuffer[*Payment](c, value)
 }
 
-func (FfiConverterOptionalTypePayment) write(writer io.Writer, value *Payment) {
+func (_ FfiConverterOptionalTypePayment) write(writer io.Writer, value *Payment) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -6993,7 +5727,7 @@ func (FfiConverterOptionalTypePayment) write(writer io.Writer, value *Payment) {
 
 type FfiDestroyerOptionalTypePayment struct{}
 
-func (FfiDestroyerOptionalTypePayment) destroy(value *Payment) {
+func (_ FfiDestroyerOptionalTypePayment) destroy(value *Payment) {
 	if value != nil {
 		FfiDestroyerTypePayment{}.destroy(*value)
 	}
@@ -7003,30 +5737,23 @@ type FfiConverterOptionalTypeSwapInfo struct{}
 
 var FfiConverterOptionalTypeSwapInfoINSTANCE = FfiConverterOptionalTypeSwapInfo{}
 
-func (c FfiConverterOptionalTypeSwapInfo) lift(cRustBuf C.RustBuffer) (*SwapInfo, error) {
+func (c FfiConverterOptionalTypeSwapInfo) lift(cRustBuf C.RustBuffer) *SwapInfo {
 	return liftFromRustBuffer[*SwapInfo](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeSwapInfo) read(reader io.Reader) (*SwapInfo, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeSwapInfo) read(reader io.Reader) *SwapInfo {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeSwapInfoINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeSwapInfoINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeSwapInfo) lower(value *SwapInfo) C.RustBuffer {
 	return lowerIntoRustBuffer[*SwapInfo](c, value)
 }
 
-func (FfiConverterOptionalTypeSwapInfo) write(writer io.Writer, value *SwapInfo) {
+func (_ FfiConverterOptionalTypeSwapInfo) write(writer io.Writer, value *SwapInfo) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7037,7 +5764,7 @@ func (FfiConverterOptionalTypeSwapInfo) write(writer io.Writer, value *SwapInfo)
 
 type FfiDestroyerOptionalTypeSwapInfo struct{}
 
-func (FfiDestroyerOptionalTypeSwapInfo) destroy(value *SwapInfo) {
+func (_ FfiDestroyerOptionalTypeSwapInfo) destroy(value *SwapInfo) {
 	if value != nil {
 		FfiDestroyerTypeSwapInfo{}.destroy(*value)
 	}
@@ -7047,30 +5774,23 @@ type FfiConverterOptionalTypeSymbol struct{}
 
 var FfiConverterOptionalTypeSymbolINSTANCE = FfiConverterOptionalTypeSymbol{}
 
-func (c FfiConverterOptionalTypeSymbol) lift(cRustBuf C.RustBuffer) (*Symbol, error) {
+func (c FfiConverterOptionalTypeSymbol) lift(cRustBuf C.RustBuffer) *Symbol {
 	return liftFromRustBuffer[*Symbol](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeSymbol) read(reader io.Reader) (*Symbol, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeSymbol) read(reader io.Reader) *Symbol {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeSymbolINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeSymbolINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeSymbol) lower(value *Symbol) C.RustBuffer {
 	return lowerIntoRustBuffer[*Symbol](c, value)
 }
 
-func (FfiConverterOptionalTypeSymbol) write(writer io.Writer, value *Symbol) {
+func (_ FfiConverterOptionalTypeSymbol) write(writer io.Writer, value *Symbol) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7081,7 +5801,7 @@ func (FfiConverterOptionalTypeSymbol) write(writer io.Writer, value *Symbol) {
 
 type FfiDestroyerOptionalTypeSymbol struct{}
 
-func (FfiDestroyerOptionalTypeSymbol) destroy(value *Symbol) {
+func (_ FfiDestroyerOptionalTypeSymbol) destroy(value *Symbol) {
 	if value != nil {
 		FfiDestroyerTypeSymbol{}.destroy(*value)
 	}
@@ -7091,30 +5811,23 @@ type FfiConverterOptionalTypeSuccessActionProcessed struct{}
 
 var FfiConverterOptionalTypeSuccessActionProcessedINSTANCE = FfiConverterOptionalTypeSuccessActionProcessed{}
 
-func (c FfiConverterOptionalTypeSuccessActionProcessed) lift(cRustBuf C.RustBuffer) (*SuccessActionProcessed, error) {
+func (c FfiConverterOptionalTypeSuccessActionProcessed) lift(cRustBuf C.RustBuffer) *SuccessActionProcessed {
 	return liftFromRustBuffer[*SuccessActionProcessed](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalTypeSuccessActionProcessed) read(reader io.Reader) (*SuccessActionProcessed, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalTypeSuccessActionProcessed) read(reader io.Reader) *SuccessActionProcessed {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterTypeSuccessActionProcessedINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterTypeSuccessActionProcessedINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalTypeSuccessActionProcessed) lower(value *SuccessActionProcessed) C.RustBuffer {
 	return lowerIntoRustBuffer[*SuccessActionProcessed](c, value)
 }
 
-func (FfiConverterOptionalTypeSuccessActionProcessed) write(writer io.Writer, value *SuccessActionProcessed) {
+func (_ FfiConverterOptionalTypeSuccessActionProcessed) write(writer io.Writer, value *SuccessActionProcessed) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7125,7 +5838,7 @@ func (FfiConverterOptionalTypeSuccessActionProcessed) write(writer io.Writer, va
 
 type FfiDestroyerOptionalTypeSuccessActionProcessed struct{}
 
-func (FfiDestroyerOptionalTypeSuccessActionProcessed) destroy(value *SuccessActionProcessed) {
+func (_ FfiDestroyerOptionalTypeSuccessActionProcessed) destroy(value *SuccessActionProcessed) {
 	if value != nil {
 		FfiDestroyerTypeSuccessActionProcessed{}.destroy(*value)
 	}
@@ -7135,30 +5848,23 @@ type FfiConverterOptionalSequenceuint8 struct{}
 
 var FfiConverterOptionalSequenceuint8INSTANCE = FfiConverterOptionalSequenceuint8{}
 
-func (c FfiConverterOptionalSequenceuint8) lift(cRustBuf C.RustBuffer) (*[]uint8, error) {
+func (c FfiConverterOptionalSequenceuint8) lift(cRustBuf C.RustBuffer) *[]uint8 {
 	return liftFromRustBuffer[*[]uint8](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalSequenceuint8) read(reader io.Reader) (*[]uint8, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalSequenceuint8) read(reader io.Reader) *[]uint8 {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterSequenceuint8INSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterSequenceuint8INSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalSequenceuint8) lower(value *[]uint8) C.RustBuffer {
 	return lowerIntoRustBuffer[*[]uint8](c, value)
 }
 
-func (FfiConverterOptionalSequenceuint8) write(writer io.Writer, value *[]uint8) {
+func (_ FfiConverterOptionalSequenceuint8) write(writer io.Writer, value *[]uint8) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7169,7 +5875,7 @@ func (FfiConverterOptionalSequenceuint8) write(writer io.Writer, value *[]uint8)
 
 type FfiDestroyerOptionalSequenceuint8 struct{}
 
-func (FfiDestroyerOptionalSequenceuint8) destroy(value *[]uint8) {
+func (_ FfiDestroyerOptionalSequenceuint8) destroy(value *[]uint8) {
 	if value != nil {
 		FfiDestroyerSequenceuint8{}.destroy(*value)
 	}
@@ -7179,30 +5885,23 @@ type FfiConverterOptionalSequenceTypeLocaleOverrides struct{}
 
 var FfiConverterOptionalSequenceTypeLocaleOverridesINSTANCE = FfiConverterOptionalSequenceTypeLocaleOverrides{}
 
-func (c FfiConverterOptionalSequenceTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) (*[]LocaleOverrides, error) {
+func (c FfiConverterOptionalSequenceTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) *[]LocaleOverrides {
 	return liftFromRustBuffer[*[]LocaleOverrides](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalSequenceTypeLocaleOverrides) read(reader io.Reader) (*[]LocaleOverrides, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalSequenceTypeLocaleOverrides) read(reader io.Reader) *[]LocaleOverrides {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterSequenceTypeLocaleOverridesINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterSequenceTypeLocaleOverridesINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalSequenceTypeLocaleOverrides) lower(value *[]LocaleOverrides) C.RustBuffer {
 	return lowerIntoRustBuffer[*[]LocaleOverrides](c, value)
 }
 
-func (FfiConverterOptionalSequenceTypeLocaleOverrides) write(writer io.Writer, value *[]LocaleOverrides) {
+func (_ FfiConverterOptionalSequenceTypeLocaleOverrides) write(writer io.Writer, value *[]LocaleOverrides) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7213,7 +5912,7 @@ func (FfiConverterOptionalSequenceTypeLocaleOverrides) write(writer io.Writer, v
 
 type FfiDestroyerOptionalSequenceTypeLocaleOverrides struct{}
 
-func (FfiDestroyerOptionalSequenceTypeLocaleOverrides) destroy(value *[]LocaleOverrides) {
+func (_ FfiDestroyerOptionalSequenceTypeLocaleOverrides) destroy(value *[]LocaleOverrides) {
 	if value != nil {
 		FfiDestroyerSequenceTypeLocaleOverrides{}.destroy(*value)
 	}
@@ -7223,30 +5922,23 @@ type FfiConverterOptionalSequenceTypeLocalizedName struct{}
 
 var FfiConverterOptionalSequenceTypeLocalizedNameINSTANCE = FfiConverterOptionalSequenceTypeLocalizedName{}
 
-func (c FfiConverterOptionalSequenceTypeLocalizedName) lift(cRustBuf C.RustBuffer) (*[]LocalizedName, error) {
+func (c FfiConverterOptionalSequenceTypeLocalizedName) lift(cRustBuf C.RustBuffer) *[]LocalizedName {
 	return liftFromRustBuffer[*[]LocalizedName](c, fromCRustBuffer(cRustBuf))
 }
 
-func (FfiConverterOptionalSequenceTypeLocalizedName) read(reader io.Reader) (*[]LocalizedName, error) {
-	readValue, err := readInt8(reader)
-	if err != nil {
-		return nil, err
+func (_ FfiConverterOptionalSequenceTypeLocalizedName) read(reader io.Reader) *[]LocalizedName {
+	if readInt8(reader) == 0 {
+		return nil
 	}
-	if readValue == 0 {
-		return nil, nil
-	}
-	temp, err := FfiConverterSequenceTypeLocalizedNameINSTANCE.read(reader)
-	if err != nil {
-		return nil, err
-	}
-	return &temp, nil
+	temp := FfiConverterSequenceTypeLocalizedNameINSTANCE.read(reader)
+	return &temp
 }
 
 func (c FfiConverterOptionalSequenceTypeLocalizedName) lower(value *[]LocalizedName) C.RustBuffer {
 	return lowerIntoRustBuffer[*[]LocalizedName](c, value)
 }
 
-func (FfiConverterOptionalSequenceTypeLocalizedName) write(writer io.Writer, value *[]LocalizedName) {
+func (_ FfiConverterOptionalSequenceTypeLocalizedName) write(writer io.Writer, value *[]LocalizedName) {
 	if value == nil {
 		writeInt8(writer, 0)
 	} else {
@@ -7257,7 +5949,7 @@ func (FfiConverterOptionalSequenceTypeLocalizedName) write(writer io.Writer, val
 
 type FfiDestroyerOptionalSequenceTypeLocalizedName struct{}
 
-func (FfiDestroyerOptionalSequenceTypeLocalizedName) destroy(value *[]LocalizedName) {
+func (_ FfiDestroyerOptionalSequenceTypeLocalizedName) destroy(value *[]LocalizedName) {
 	if value != nil {
 		FfiDestroyerSequenceTypeLocalizedName{}.destroy(*value)
 	}
@@ -7267,27 +5959,20 @@ type FfiConverterSequenceuint8 struct{}
 
 var FfiConverterSequenceuint8INSTANCE = FfiConverterSequenceuint8{}
 
-func (c FfiConverterSequenceuint8) lift(cRustBuf C.RustBuffer) ([]uint8, error) {
+func (c FfiConverterSequenceuint8) lift(cRustBuf C.RustBuffer) []uint8 {
 	return liftFromRustBuffer[[]uint8](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceuint8) read(reader io.Reader) ([]uint8, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceuint8) read(reader io.Reader) []uint8 {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]uint8, 0, length)
 	for i := int32(0); i < length; i++ {
-		_uint8, err := FfiConverteruint8INSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _uint8)
+		result = append(result, FfiConverteruint8INSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceuint8) lower(value []uint8) C.RustBuffer {
@@ -7317,27 +6002,20 @@ type FfiConverterSequencestring struct{}
 
 var FfiConverterSequencestringINSTANCE = FfiConverterSequencestring{}
 
-func (c FfiConverterSequencestring) lift(cRustBuf C.RustBuffer) ([]string, error) {
+func (c FfiConverterSequencestring) lift(cRustBuf C.RustBuffer) []string {
 	return liftFromRustBuffer[[]string](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequencestring) read(reader io.Reader) ([]string, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequencestring) read(reader io.Reader) []string {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]string, 0, length)
 	for i := int32(0); i < length; i++ {
-		_string, err := FfiConverterstringINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _string)
+		result = append(result, FfiConverterstringINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequencestring) lower(value []string) C.RustBuffer {
@@ -7367,27 +6045,20 @@ type FfiConverterSequenceTypeFiatCurrency struct{}
 
 var FfiConverterSequenceTypeFiatCurrencyINSTANCE = FfiConverterSequenceTypeFiatCurrency{}
 
-func (c FfiConverterSequenceTypeFiatCurrency) lift(cRustBuf C.RustBuffer) ([]FiatCurrency, error) {
+func (c FfiConverterSequenceTypeFiatCurrency) lift(cRustBuf C.RustBuffer) []FiatCurrency {
 	return liftFromRustBuffer[[]FiatCurrency](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeFiatCurrency) read(reader io.Reader) ([]FiatCurrency, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeFiatCurrency) read(reader io.Reader) []FiatCurrency {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]FiatCurrency, 0, length)
 	for i := int32(0); i < length; i++ {
-		_fiatCurrency, err := FfiConverterTypeFiatCurrencyINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _fiatCurrency)
+		result = append(result, FfiConverterTypeFiatCurrencyINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeFiatCurrency) lower(value []FiatCurrency) C.RustBuffer {
@@ -7417,27 +6088,20 @@ type FfiConverterSequenceTypeLocaleOverrides struct{}
 
 var FfiConverterSequenceTypeLocaleOverridesINSTANCE = FfiConverterSequenceTypeLocaleOverrides{}
 
-func (c FfiConverterSequenceTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) ([]LocaleOverrides, error) {
+func (c FfiConverterSequenceTypeLocaleOverrides) lift(cRustBuf C.RustBuffer) []LocaleOverrides {
 	return liftFromRustBuffer[[]LocaleOverrides](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeLocaleOverrides) read(reader io.Reader) ([]LocaleOverrides, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeLocaleOverrides) read(reader io.Reader) []LocaleOverrides {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]LocaleOverrides, 0, length)
 	for i := int32(0); i < length; i++ {
-		_localeOverrides, err := FfiConverterTypeLocaleOverridesINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _localeOverrides)
+		result = append(result, FfiConverterTypeLocaleOverridesINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeLocaleOverrides) lower(value []LocaleOverrides) C.RustBuffer {
@@ -7467,27 +6131,20 @@ type FfiConverterSequenceTypeLocalizedName struct{}
 
 var FfiConverterSequenceTypeLocalizedNameINSTANCE = FfiConverterSequenceTypeLocalizedName{}
 
-func (c FfiConverterSequenceTypeLocalizedName) lift(cRustBuf C.RustBuffer) ([]LocalizedName, error) {
+func (c FfiConverterSequenceTypeLocalizedName) lift(cRustBuf C.RustBuffer) []LocalizedName {
 	return liftFromRustBuffer[[]LocalizedName](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeLocalizedName) read(reader io.Reader) ([]LocalizedName, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeLocalizedName) read(reader io.Reader) []LocalizedName {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]LocalizedName, 0, length)
 	for i := int32(0); i < length; i++ {
-		_localizedName, err := FfiConverterTypeLocalizedNameINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _localizedName)
+		result = append(result, FfiConverterTypeLocalizedNameINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeLocalizedName) lower(value []LocalizedName) C.RustBuffer {
@@ -7517,27 +6174,20 @@ type FfiConverterSequenceTypeLspInformation struct{}
 
 var FfiConverterSequenceTypeLspInformationINSTANCE = FfiConverterSequenceTypeLspInformation{}
 
-func (c FfiConverterSequenceTypeLspInformation) lift(cRustBuf C.RustBuffer) ([]LspInformation, error) {
+func (c FfiConverterSequenceTypeLspInformation) lift(cRustBuf C.RustBuffer) []LspInformation {
 	return liftFromRustBuffer[[]LspInformation](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeLspInformation) read(reader io.Reader) ([]LspInformation, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeLspInformation) read(reader io.Reader) []LspInformation {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]LspInformation, 0, length)
 	for i := int32(0); i < length; i++ {
-		_lspInformation, err := FfiConverterTypeLspInformationINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _lspInformation)
+		result = append(result, FfiConverterTypeLspInformationINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeLspInformation) lower(value []LspInformation) C.RustBuffer {
@@ -7567,27 +6217,20 @@ type FfiConverterSequenceTypeOpeningFeeParams struct{}
 
 var FfiConverterSequenceTypeOpeningFeeParamsINSTANCE = FfiConverterSequenceTypeOpeningFeeParams{}
 
-func (c FfiConverterSequenceTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) ([]OpeningFeeParams, error) {
+func (c FfiConverterSequenceTypeOpeningFeeParams) lift(cRustBuf C.RustBuffer) []OpeningFeeParams {
 	return liftFromRustBuffer[[]OpeningFeeParams](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeOpeningFeeParams) read(reader io.Reader) ([]OpeningFeeParams, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeOpeningFeeParams) read(reader io.Reader) []OpeningFeeParams {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]OpeningFeeParams, 0, length)
 	for i := int32(0); i < length; i++ {
-		_openingFeeParams, err := FfiConverterTypeOpeningFeeParamsINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _openingFeeParams)
+		result = append(result, FfiConverterTypeOpeningFeeParamsINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeOpeningFeeParams) lower(value []OpeningFeeParams) C.RustBuffer {
@@ -7617,27 +6260,20 @@ type FfiConverterSequenceTypePayment struct{}
 
 var FfiConverterSequenceTypePaymentINSTANCE = FfiConverterSequenceTypePayment{}
 
-func (c FfiConverterSequenceTypePayment) lift(cRustBuf C.RustBuffer) ([]Payment, error) {
+func (c FfiConverterSequenceTypePayment) lift(cRustBuf C.RustBuffer) []Payment {
 	return liftFromRustBuffer[[]Payment](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypePayment) read(reader io.Reader) ([]Payment, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypePayment) read(reader io.Reader) []Payment {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]Payment, 0, length)
 	for i := int32(0); i < length; i++ {
-		_payment, err := FfiConverterTypePaymentINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _payment)
+		result = append(result, FfiConverterTypePaymentINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypePayment) lower(value []Payment) C.RustBuffer {
@@ -7667,27 +6303,20 @@ type FfiConverterSequenceTypeRate struct{}
 
 var FfiConverterSequenceTypeRateINSTANCE = FfiConverterSequenceTypeRate{}
 
-func (c FfiConverterSequenceTypeRate) lift(cRustBuf C.RustBuffer) ([]Rate, error) {
+func (c FfiConverterSequenceTypeRate) lift(cRustBuf C.RustBuffer) []Rate {
 	return liftFromRustBuffer[[]Rate](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeRate) read(reader io.Reader) ([]Rate, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeRate) read(reader io.Reader) []Rate {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]Rate, 0, length)
 	for i := int32(0); i < length; i++ {
-		_rate, err := FfiConverterTypeRateINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _rate)
+		result = append(result, FfiConverterTypeRateINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeRate) lower(value []Rate) C.RustBuffer {
@@ -7717,27 +6346,20 @@ type FfiConverterSequenceTypeReverseSwapInfo struct{}
 
 var FfiConverterSequenceTypeReverseSwapInfoINSTANCE = FfiConverterSequenceTypeReverseSwapInfo{}
 
-func (c FfiConverterSequenceTypeReverseSwapInfo) lift(cRustBuf C.RustBuffer) ([]ReverseSwapInfo, error) {
+func (c FfiConverterSequenceTypeReverseSwapInfo) lift(cRustBuf C.RustBuffer) []ReverseSwapInfo {
 	return liftFromRustBuffer[[]ReverseSwapInfo](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeReverseSwapInfo) read(reader io.Reader) ([]ReverseSwapInfo, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeReverseSwapInfo) read(reader io.Reader) []ReverseSwapInfo {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]ReverseSwapInfo, 0, length)
 	for i := int32(0); i < length; i++ {
-		_reverseSwapInfo, err := FfiConverterTypeReverseSwapInfoINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _reverseSwapInfo)
+		result = append(result, FfiConverterTypeReverseSwapInfoINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeReverseSwapInfo) lower(value []ReverseSwapInfo) C.RustBuffer {
@@ -7767,27 +6389,20 @@ type FfiConverterSequenceTypeRouteHint struct{}
 
 var FfiConverterSequenceTypeRouteHintINSTANCE = FfiConverterSequenceTypeRouteHint{}
 
-func (c FfiConverterSequenceTypeRouteHint) lift(cRustBuf C.RustBuffer) ([]RouteHint, error) {
+func (c FfiConverterSequenceTypeRouteHint) lift(cRustBuf C.RustBuffer) []RouteHint {
 	return liftFromRustBuffer[[]RouteHint](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeRouteHint) read(reader io.Reader) ([]RouteHint, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeRouteHint) read(reader io.Reader) []RouteHint {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]RouteHint, 0, length)
 	for i := int32(0); i < length; i++ {
-		_routeHint, err := FfiConverterTypeRouteHintINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _routeHint)
+		result = append(result, FfiConverterTypeRouteHintINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeRouteHint) lower(value []RouteHint) C.RustBuffer {
@@ -7817,27 +6432,20 @@ type FfiConverterSequenceTypeRouteHintHop struct{}
 
 var FfiConverterSequenceTypeRouteHintHopINSTANCE = FfiConverterSequenceTypeRouteHintHop{}
 
-func (c FfiConverterSequenceTypeRouteHintHop) lift(cRustBuf C.RustBuffer) ([]RouteHintHop, error) {
+func (c FfiConverterSequenceTypeRouteHintHop) lift(cRustBuf C.RustBuffer) []RouteHintHop {
 	return liftFromRustBuffer[[]RouteHintHop](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeRouteHintHop) read(reader io.Reader) ([]RouteHintHop, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeRouteHintHop) read(reader io.Reader) []RouteHintHop {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]RouteHintHop, 0, length)
 	for i := int32(0); i < length; i++ {
-		_routeHintHop, err := FfiConverterTypeRouteHintHopINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _routeHintHop)
+		result = append(result, FfiConverterTypeRouteHintHopINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeRouteHintHop) lower(value []RouteHintHop) C.RustBuffer {
@@ -7867,27 +6475,20 @@ type FfiConverterSequenceTypeSwapInfo struct{}
 
 var FfiConverterSequenceTypeSwapInfoINSTANCE = FfiConverterSequenceTypeSwapInfo{}
 
-func (c FfiConverterSequenceTypeSwapInfo) lift(cRustBuf C.RustBuffer) ([]SwapInfo, error) {
+func (c FfiConverterSequenceTypeSwapInfo) lift(cRustBuf C.RustBuffer) []SwapInfo {
 	return liftFromRustBuffer[[]SwapInfo](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeSwapInfo) read(reader io.Reader) ([]SwapInfo, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeSwapInfo) read(reader io.Reader) []SwapInfo {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]SwapInfo, 0, length)
 	for i := int32(0); i < length; i++ {
-		_swapInfo, err := FfiConverterTypeSwapInfoINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _swapInfo)
+		result = append(result, FfiConverterTypeSwapInfoINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeSwapInfo) lower(value []SwapInfo) C.RustBuffer {
@@ -7917,27 +6518,20 @@ type FfiConverterSequenceTypeUnspentTransactionOutput struct{}
 
 var FfiConverterSequenceTypeUnspentTransactionOutputINSTANCE = FfiConverterSequenceTypeUnspentTransactionOutput{}
 
-func (c FfiConverterSequenceTypeUnspentTransactionOutput) lift(cRustBuf C.RustBuffer) ([]UnspentTransactionOutput, error) {
+func (c FfiConverterSequenceTypeUnspentTransactionOutput) lift(cRustBuf C.RustBuffer) []UnspentTransactionOutput {
 	return liftFromRustBuffer[[]UnspentTransactionOutput](c, fromCRustBuffer(cRustBuf))
 }
 
-func (c FfiConverterSequenceTypeUnspentTransactionOutput) read(reader io.Reader) ([]UnspentTransactionOutput, error) {
-	length, err := readInt32(reader)
-	if err != nil {
-		return nil, err
-	}
+func (c FfiConverterSequenceTypeUnspentTransactionOutput) read(reader io.Reader) []UnspentTransactionOutput {
+	length := readInt32(reader)
 	if length == 0 {
-		return nil, nil
+		return nil
 	}
 	result := make([]UnspentTransactionOutput, 0, length)
 	for i := int32(0); i < length; i++ {
-		_unspentTransactionOutput, err := FfiConverterTypeUnspentTransactionOutputINSTANCE.read(reader)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, _unspentTransactionOutput)
+		result = append(result, FfiConverterTypeUnspentTransactionOutputINSTANCE.read(reader))
 	}
-	return result, nil
+	return result
 }
 
 func (c FfiConverterSequenceTypeUnspentTransactionOutput) lower(value []UnspentTransactionOutput) C.RustBuffer {
@@ -7968,15 +6562,11 @@ func Connect(config Config, seed []uint8, listener EventListener) (*BlockingBree
 	_uniffiRV, _uniffiErr := rustCallWithError(FfiConverterTypeSdkError{}, func(_uniffiStatus *C.RustCallStatus) unsafe.Pointer {
 		return C.breez_sdk_d634_connect(FfiConverterTypeConfigINSTANCE.lower(config), FfiConverterSequenceuint8INSTANCE.lower(seed), FfiConverterTypeEventListenerINSTANCE.lower(listener), _uniffiStatus)
 	})
-	var _uniffiDefaultValue *BlockingBreezServices
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue *BlockingBreezServices
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterBlockingBreezServicesINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterBlockingBreezServicesINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -7996,15 +6586,11 @@ func ParseInvoice(invoice string) (LnInvoice, error) {
 	_uniffiRV, _uniffiErr := rustCallWithError(FfiConverterTypeSdkError{}, func(_uniffiStatus *C.RustCallStatus) C.RustBuffer {
 		return C.breez_sdk_d634_parse_invoice(FfiConverterstringINSTANCE.lower(invoice), _uniffiStatus)
 	})
-	var _uniffiDefaultValue LnInvoice
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue LnInvoice
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeLnInvoiceINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeLnInvoiceINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -8014,15 +6600,11 @@ func ParseInput(s string) (InputType, error) {
 	_uniffiRV, _uniffiErr := rustCallWithError(FfiConverterTypeSdkError{}, func(_uniffiStatus *C.RustCallStatus) C.RustBuffer {
 		return C.breez_sdk_d634_parse_input(FfiConverterstringINSTANCE.lower(s), _uniffiStatus)
 	})
-	var _uniffiDefaultValue InputType
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue InputType
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterTypeInputTypeINSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterTypeInputTypeINSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
@@ -8032,24 +6614,19 @@ func MnemonicToSeed(phrase string) ([]uint8, error) {
 	_uniffiRV, _uniffiErr := rustCallWithError(FfiConverterTypeSdkError{}, func(_uniffiStatus *C.RustCallStatus) C.RustBuffer {
 		return C.breez_sdk_d634_mnemonic_to_seed(FfiConverterstringINSTANCE.lower(phrase), _uniffiStatus)
 	})
-	var _uniffiDefaultValue []uint8
 	if _uniffiErr != nil {
+		var _uniffiDefaultValue []uint8
 		return _uniffiDefaultValue, _uniffiErr
 	} else {
-		liftedValue, err := FfiConverterSequenceuint8INSTANCE.lift(_uniffiRV)
-		if err != nil {
-			return _uniffiDefaultValue, err
-		}
-		return liftedValue, _uniffiErr
+		return FfiConverterSequenceuint8INSTANCE.lift(_uniffiRV), _uniffiErr
 	}
 
 }
 
 func DefaultConfig(envType EnvironmentType, apiKey string, nodeConfig NodeConfig) Config {
 
-	liftedValue, _ := FfiConverterTypeConfigINSTANCE.lift(rustCall(func(_uniffiStatus *C.RustCallStatus) C.RustBuffer {
+	return FfiConverterTypeConfigINSTANCE.lift(rustCall(func(_uniffiStatus *C.RustCallStatus) C.RustBuffer {
 		return C.breez_sdk_d634_default_config(FfiConverterTypeEnvironmentTypeINSTANCE.lower(envType), FfiConverterstringINSTANCE.lower(apiKey), FfiConverterTypeNodeConfigINSTANCE.lower(nodeConfig), _uniffiStatus)
 	}))
-	return liftedValue
 
 }
