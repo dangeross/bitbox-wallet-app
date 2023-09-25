@@ -24,7 +24,7 @@ windows-cross:
         -buildmode="${BUILDMODE}" -o ${LIBNAME}.dll
 
 windows-legacy:
-	CGO_ENABLED=1 go build -mod=vendor -ldflags="-s -w" -buildmode=c-archive \
+	CGO_ENABLED=1 GODEBUG=cgocheck=0 go build -mod=vendor -ldflags="-s -w" -buildmode=c-archive \
 		-o libserver.a
 	gcc server.def libserver.a -shared -lwinmm -lhid -lsetupapi -lWs2_32 -lkernel32 -ladvapi32 -lsecur32 \
 	    -lcrypt32 -lntdll -lbcrypt -L${MSVC_LIB_DIR} -lmsvcp140 -lvcruntime140 -L${BREEZ_LIB_DIR} -lbreez_sdk_bindings \
