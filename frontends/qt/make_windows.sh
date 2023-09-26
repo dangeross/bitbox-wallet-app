@@ -17,7 +17,7 @@ set -e
 mkdir -p build/windows
 bash ./genassets.sh
 cmd "/C pre_make_windows.bat"
-cp ../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64/breez_sdk_bindings.dll build/windows/
+cp ../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64/breez_sdk_bindings.* build/windows/
 make -C server/ windows-legacy
 env -u MAKE -u MAKEFLAGS cmd "/C compile_windows.bat"
 cp build/assets.rcc build/windows/
