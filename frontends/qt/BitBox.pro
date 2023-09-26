@@ -25,6 +25,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(external/singleapplication/singleapplication.pri)
 DEFINES += QAPPLICATION_CLASS=QApplication
 
+win64 {
+    LIBS += -L$$PWD/build/windows
+    INCLUDEPATH += $$PWD/build/windows
+    DEPENDPATH += $$PWD/build/windows
+}
+
 win32 {
     # -llibssp would be nice to have on Windows
     LIBS += -L$$PWD/server/ -lbreez_sdk_bindings -llibserver
