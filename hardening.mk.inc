@@ -12,7 +12,7 @@ WDEP=-Wl,--nxcompat
 WASLR=-Wl,--dynamicbase
 WASLR_UNUSED=-Wl,--high-entropy-va
 WEXPORT=-Wl,--export-all-symbols
-WLIBS=-lwinmm -lhid -lsetupapi -lws2_32 -llibssp
+WLIBS=-lwinmm -lhid -lsetupapi -lws2_32 -llibssp -lbreez_sdk_bindings
 
 GOLNXSECFLAGS=${CFORTIFY} ${CSTACK}
 GODARWINSECFLAGS=${CFORTIFY} ${CSTACK}
