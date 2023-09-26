@@ -25,15 +25,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(external/singleapplication/singleapplication.pri)
 DEFINES += QAPPLICATION_CLASS=QApplication
 
-win64 {
-    LIBS += -L$$PWD/build/windows
-    INCLUDEPATH += $$PWD/build/windows
-    DEPENDPATH += $$PWD/build/windows
-}
-
 win32 {
     # -llibssp would be nice to have on Windows
+    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64/ -lbreez_sdk_bindings
     LIBS += -L$$PWD/server/ -lbreez_sdk_bindings -llibserver
+    INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
+    DEPENDPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
     DESTDIR = $$PWD/build/windows
     RC_ICONS += $$PWD/resources/win/icon.ico
     # These flags aren't currently being respected at build time on Windows
