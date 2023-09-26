@@ -28,7 +28,7 @@ DEFINES += QAPPLICATION_CLASS=QApplication
 win32 {
     # -llibssp would be nice to have on Windows
     LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64/ -lbreez_sdk_bindings
-    LIBS += -L$$PWD/server/ -lbreez_sdk_bindings -llibserver
+    LIBS += -L$$PWD/server -llibserver
     INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
     DEPENDPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
     DESTDIR = $$PWD/build/windows
