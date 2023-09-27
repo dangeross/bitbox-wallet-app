@@ -32,9 +32,9 @@ linux:
 	mv build/BitBox build/linux-tmp
 	cp build/assets.rcc build/linux-tmp/
 	cp server/libserver.so build/linux-tmp
+	cp server/libbreez_sdk_bindings.so build/linux-tmp/lib
 	cd build/linux-tmp && /opt/linuxdeployqt-7-x86_64.AppImage BitBox -bundle-non-qt-libs -unsupported-allow-new-glibc
 	cp /usr/lib/x86_64-linux-gnu/nss/* build/linux-tmp/lib
-	cp server/libbreez_sdk_bindings.so build/linux-tmp/lib
 	cp -aR resources/linux build/tmp-deb
 	cp resources/linux/usr/share/applications/bitbox.desktop build/linux-tmp
 	cp resources/linux/usr/share/icons/hicolor/128x128/apps/bitbox.png build/linux-tmp
