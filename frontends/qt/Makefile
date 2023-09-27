@@ -28,7 +28,7 @@ linux:
 	cp ../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64/libbreez_sdk_bindings.so server/
 	cd server && $(MAKE) linux
 	$(MAKE) base
-	mkdir build/linux-tmp build/linux
+	mkdir -p build/linux-tmp/lib build/linux
 	mv build/BitBox build/linux-tmp
 	cp build/assets.rcc build/linux-tmp/
 	cp server/libserver.so build/linux-tmp
