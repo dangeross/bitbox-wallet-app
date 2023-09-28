@@ -30,16 +30,6 @@ win64 {
     INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
     DEPENDPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
 }
-unix:!macx {
-    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64/ -lbreez_sdk_bindings
-    INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64
-    DEPENDPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64
-}
-unix:macx {
-    LIBS += -L$$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/darwin-amd64/ -lbreez_sdk_bindings
-    INCLUDEPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/darwin-amd64
-    DEPENDPATH += $$PWD/../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/darwin-amd64
-}
 
 win32 {
     # -llibssp would be nice to have on Windows
@@ -54,7 +44,7 @@ win32 {
     #QMAKE_LFLAGS += -Wl,--dynamicbase
 } else {
     QMAKE_CXXFLAGS += -std=c++11
-    LIBS += -L$$PWD/server -lserver
+    LIBS += -L$$PWD/server -lbreez_sdk_bindings -lserver
     QMAKE_CXXFLAGS += $$CFORTIFY
     QMAKE_CXXFLAGS += $$CSTACK
     QMAKE_CXXFLAGS += $$CMISC
@@ -64,7 +54,7 @@ win32 {
 unix:!macx {
     QMAKE_LFLAGS_RPATH=
     # so libserver.so will be found by linuxdeployqt, once copied into the same folder.
-    QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
+    QMAKE_LFLAGS += '-Wl,--enable-new-dtags,-rpath,\'\$$ORIGIN\''
     QMAKE_LFLAGS += " -pie -Wl,-z,now,-z,relro,-z,noexecstack,-z,defs "
 }
 
