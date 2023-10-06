@@ -26,7 +26,8 @@ clean:
 linux:
 	$(MAKE) clean
 	cp ../../vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/linux-amd64/libbreez_sdk_bindings.so server/
-	chrpath -r '$ORIGIN/lib' server/libbreez_sdk_bindings.so
+	apt-get install -y chrpath
+	chrpath -r \$ORIGIN/lib server/libbreez_sdk_bindings.so
 	cd server && $(MAKE) linux
 	$(MAKE) base
 	mkdir build/linux-tmp build/linux
