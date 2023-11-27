@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { useCallback, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as accountApi from '../../../api/account';
 import { Column, Grid, GuideWrapper, GuidedContent, Header, Main } from '../../../components/layout';
 import { View, ViewButtons, ViewContent } from '../../../components/view/view';
-import { Button } from '../../../components/forms';
+import { Button, Input } from '../../../components/forms';
 import { InputType, InputTypeVariant, SdkError, getParseInput, postSendPayment } from '../../../api/lightning';
 import { SimpleMarkup } from '../../../utils/markup';
 import { route } from '../../../utils/route';
-import { toSat } from '../../../utils/conversion';
+import { toMsat, toSat } from '../../../utils/conversion';
 import { Amount } from '../../../components/amount/amount';
 import { FiatConversion } from '../../../components/rates/rates';
 import { Status } from '../../../components/status/status';
@@ -48,6 +48,9 @@ const SendingSpinner = () => {
 
 export function Send() {
   const { t } = useTranslation();
+  const [amountRequired, setAmountRequired] = useState<boolean>(false);
+  const [amountSats, setAmountSats] = useState<number>(0);
+  const [amountSatsText, setAmountSatsText] = useState<string>('');
   const [parsedInput, setParsedInput] = useState<InputType>();
   const [rawInputError, setRawInputError] = useState<string>();
   const [sendError, setSendError] = useState<string>();
@@ -67,12 +70,28 @@ export function Send() {
     }
   };
 
+  const onAmountSatsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    setAmountSatsText(target.value);
+  };
+
+  useEffect(() => {
+    setAmountSats(+amountSatsText);
+  }, [amountSatsText]);
+
   const parseInput = useCallback(async (rawInput: string) => {
     setRawInputError(undefined);
     try {
       const result = await getParseInput({ s: rawInput });
       switch (result.type) {
       case InputTypeVariant.BOLT11:
+        if (result.invoice.amountMsat) {
+          setAmountRequired(false);
+          setAmountSatsText(toSat(result.invoice.amountMsat).toString());
+        } else {
+          setAmountRequired(true);
+          setAmountSatsText('');
+        }
         setParsedInput(result);
         setStep('confirm');
         break;
@@ -94,7 +113,7 @@ export function Send() {
     try {
       switch (parsedInput?.type) {
       case InputTypeVariant.BOLT11:
-        await postSendPayment({ bolt11: parsedInput.invoice.bolt11 });
+        await postSendPayment({ bolt11: parsedInput.invoice.bolt11, amountMsat: amountRequired ? toMsat(amountSats) : undefined });
         setStep('success');
         setTimeout(() => route('/lightning'), 5000);
         break;
@@ -127,11 +146,24 @@ export function Send() {
       return (
         <Column>
           <h1 className={styles.title}>{t('lightning.send.confirm.title')}</h1>
-          <div className={styles.info}>
-            <h2 className={styles.label}>{t('lightning.send.confirm.amount')}</h2>
-            <Amount amount={balance.available.amount} unit={balance.available.unit} removeBtcTrailingZeroes />/{' '}
-            <FiatConversion amount={balance.available} noBtcZeroes />
-          </div>
+          {amountRequired ? (
+            <Input
+              type="number"
+              min="0"
+              label={t('lightning.send.amountSats.label')}
+              placeholder={t('lightning.send.amountSats.placeholder')}
+              id="amountSatsInput"
+              onInput={onAmountSatsChange}
+              value={amountSatsText}
+              autoFocus
+            />
+          ) : (
+            <div className={styles.info}>
+              <h2 className={styles.label}>{t('lightning.send.confirm.amount')}</h2>
+              <Amount amount={balance.available.amount} unit={balance.available.unit} removeBtcTrailingZeroes />/{' '}
+              <FiatConversion amount={balance.available} noBtcZeroes />
+            </div>
+          )}
           {parsedInput?.invoice.description && (
             <div className={styles.info}>
               <h2 className={styles.label}>{t('lightning.send.confirm.memo')}</h2>
@@ -163,8 +195,8 @@ export function Send() {
           </ViewContent>
           <ViewButtons reverseRow>
             {/* <Button primary onClick={parseInput} disabled={busy}>
-            {t('button.send')}
-          </Button> */}
+          {t('button.send')}
+        </Button> */}
             <Button secondary onClick={back}>
               {t('button.back')}
             </Button>
@@ -178,7 +210,7 @@ export function Send() {
             <Grid col="1">{renderInputTypes()}</Grid>
           </ViewContent>
           <ViewButtons>
-            <Button primary onClick={sendPayment}>
+            <Button primary onClick={sendPayment} disabled={amountSatsText === '' || amountSats === 0}>
               {t('button.send')}
             </Button>
             <Button secondary onClick={back}>

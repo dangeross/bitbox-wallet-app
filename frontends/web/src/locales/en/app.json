@@ -1098,6 +1098,10 @@
       "title": "Receive Lightning"
     },
     "send": {
+      "amountSats": {
+        "label": "Sats",
+        "placeholder": "Enter amount"
+      },
       "confirm": {
         "amount": "Amount",
         "memo": "Memo",
