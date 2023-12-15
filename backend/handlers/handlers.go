@@ -257,6 +257,9 @@ func NewHandlers(
 	getAPIRouterNoError(apiRouter)("/lightning/parse-input", handlers.getLightningParseInput).Methods("GET")
 	getAPIRouterNoError(apiRouter)("/lightning/receive-payment", handlers.postLightningReceivePayment).Methods("POST")
 	getAPIRouterNoError(apiRouter)("/lightning/send-payment", handlers.postLightningSendPayment).Methods("POST")
+	getAPIRouterNoError(apiRouter)("/lightning/lnurl-auth", handlers.postLightningLnurlAuth).Methods("POST")
+	getAPIRouterNoError(apiRouter)("/lightning/lnurl-pay", handlers.postLightningLnurlPay).Methods("POST")
+	getAPIRouterNoError(apiRouter)("/lightning/lnurl-withdraw", handlers.postLightningLnurlWithdraw).Methods("POST")
 
 	devicesRouter := getAPIRouterNoError(apiRouter.PathPrefix("/devices").Subrouter())
 	devicesRouter("/registered", handlers.getDevicesRegisteredHandler).Methods("GET")
@@ -1424,4 +1427,16 @@ func (handlers *Handlers) postLightningReceivePayment(r *http.Request) interface
 
 func (handlers *Handlers) postLightningSendPayment(r *http.Request) interface{} {
 	return handlers.backend.Lightning().PostSendPayment(r)
+}
+
+func (handlers *Handlers) postLightningLnurlAuth(r *http.Request) interface{} {
+	return handlers.backend.Lightning().PostLnurlAuth(r)
+}
+
+func (handlers *Handlers) postLightningLnurlPay(r *http.Request) interface{} {
+	return handlers.backend.Lightning().PostLnurlPay(r)
+}
+
+func (handlers *Handlers) postLightningLnurlWithdraw(r *http.Request) interface{} {
+	return handlers.backend.Lightning().PostLnurlWithdraw(r)
 }

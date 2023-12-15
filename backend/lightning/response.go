@@ -83,29 +83,13 @@ func toInputTypeDto(inputType breez_sdk.InputType) (interface{}, error) {
 		}
 		return inputTypeUrlDto{Type: "url", Url: typed.Url}, nil
 	case breez_sdk.InputTypeLnUrlPay:
-		type inputTypeLnUrlPayDto struct {
-			Type string                 `json:"type"`
-			Data lnUrlPayRequestDataDto `json:"data"`
-		}
-		return inputTypeLnUrlPayDto{Type: "lnUrlPay", Data: toLnUrlPayRequestDataDto(typed.Data)}, nil
+		return typeDataDto{Type: "lnUrlPay", Data: toLnUrlPayRequestDataDto(typed.Data)}, nil
 	case breez_sdk.InputTypeLnUrlWithdraw:
-		type inputTypeLnUrlWithdrawDto struct {
-			Type string                      `json:"type"`
-			Data lnUrlWithdrawRequestDataDto `json:"data"`
-		}
-		return inputTypeLnUrlWithdrawDto{Type: "lnUrlWithdraw", Data: toLnUrlWithdrawRequestDataDto(typed.Data)}, nil
+		return typeDataDto{Type: "lnUrlWithdraw", Data: toLnUrlWithdrawRequestDataDto(typed.Data)}, nil
 	case breez_sdk.InputTypeLnUrlAuth:
-		type inputTypeLnUrlAuthDto struct {
-			Type string                  `json:"type"`
-			Data lnUrlAuthRequestDataDto `json:"data"`
-		}
-		return inputTypeLnUrlAuthDto{Type: "lnUrlAuth", Data: toLnUrlAuthRequestDataDto(typed.Data)}, nil
+		return typeDataDto{Type: "lnUrlAuth", Data: toLnUrlAuthRequestDataDto(typed.Data)}, nil
 	case breez_sdk.InputTypeLnUrlError:
-		type inputTypeLnUrlErrorDto struct {
-			Type string            `json:"type"`
-			Data lnUrlErrorDataDto `json:"data"`
-		}
-		return inputTypeLnUrlErrorDto{Type: "lnUrlError", Data: toLnUrlErrorDataDto(typed.Data)}, nil
+		return typeDataDto{Type: "lnUrlError", Data: toLnUrlErrorDataDto(typed.Data)}, nil
 	}
 	return nil, errp.New("Invalid InputType")
 }
@@ -153,6 +137,19 @@ func toLnUrlAuthRequestDataDto(lnUrlAuthRequestData breez_sdk.LnUrlAuthRequestDa
 	}
 }
 
+func toLnUrlCallbackStatusDto(lnUrlCallbackStatus breez_sdk.LnUrlCallbackStatus) (interface{}, error) {
+	switch typed := lnUrlCallbackStatus.(type) {
+	case breez_sdk.LnUrlCallbackStatusErrorStatus:
+		return typeDataDto{Type: "errorStatus", Data: toLnUrlErrorDataDto(typed.Data)}, nil
+	case breez_sdk.LnUrlCallbackStatusOk:
+		type lnUrlCallbackStatusOkDto struct {
+			Type string `json:"type"`
+		}
+		return lnUrlCallbackStatusOkDto{Type: "ok"}, nil
+	}
+	return nil, errp.New("Invalid LnUrlCallbackStatus")
+}
+
 func toLnUrlErrorDataDto(lnUrlErrorData breez_sdk.LnUrlErrorData) lnUrlErrorDataDto {
 	return lnUrlErrorDataDto{
 		Reason: lnUrlErrorData.Reason,
@@ -171,6 +168,31 @@ func toLnUrlPayRequestDataDto(lnUrlPayRequestData breez_sdk.LnUrlPayRequestData)
 	}
 }
 
+func toLnUrlPayResultDto(lnUrlPayResult breez_sdk.LnUrlPayResult) (typeDataDto, error) {
+	switch typed := lnUrlPayResult.(type) {
+	case breez_sdk.LnUrlPayResultEndpointError:
+		return typeDataDto{Type: "endpointError", Data: toLnUrlErrorDataDto(typed.Data)}, nil
+	case breez_sdk.LnUrlPayResultEndpointSuccess:
+		data, err := toLnUrlPaySuccessDataDto(typed.Data)
+		if err != nil {
+			return typeDataDto{}, err
+		}
+		return typeDataDto{Type: "endpointSuccess", Data: data}, nil
+	}
+	return typeDataDto{}, errp.New("Invalid LnUrlPayResult")
+}
+
+func toLnUrlPaySuccessDataDto(lnUrlPaySuccessData breez_sdk.LnUrlPaySuccessData) (lnUrlPaySuccessDataDto, error) {
+	successAction, err := toSuccessActionProcessedDto(lnUrlPaySuccessData.SuccessAction)
+	if err != nil {
+		return lnUrlPaySuccessDataDto{}, err
+	}
+	return lnUrlPaySuccessDataDto{
+		SuccessAction: successAction,
+		PaymentHash:   lnUrlPaySuccessData.PaymentHash,
+	}, nil
+}
+
 func toLnUrlWithdrawRequestDataDto(lnUrlWithdrawRequestData breez_sdk.LnUrlWithdrawRequestData) lnUrlWithdrawRequestDataDto {
 	return lnUrlWithdrawRequestDataDto{
 		Callback:           lnUrlWithdrawRequestData.Callback,
@@ -178,6 +200,22 @@ func toLnUrlWithdrawRequestDataDto(lnUrlWithdrawRequestData breez_sdk.LnUrlWithd
 		DefaultDescription: lnUrlWithdrawRequestData.DefaultDescription,
 		MinWithdrawable:    lnUrlWithdrawRequestData.MinWithdrawable,
 		MaxWithdrawable:    lnUrlWithdrawRequestData.MaxWithdrawable,
+	}
+}
+
+func toLnUrlWithdrawResultDto(lnUrlWithdrawResult breez_sdk.LnUrlWithdrawResult) (typeDataDto, error) {
+	switch typed := lnUrlWithdrawResult.(type) {
+	case breez_sdk.LnUrlWithdrawResultErrorStatus:
+		return typeDataDto{Type: "errorStatus", Data: toLnUrlErrorDataDto(typed.Data)}, nil
+	case breez_sdk.LnUrlWithdrawResultOk:
+		return typeDataDto{Type: "ok", Data: toLnUrlWithdrawSuccessDataDto(typed.Data)}, nil
+	}
+	return typeDataDto{}, errp.New("Invalid LnUrlWithdrawResult")
+}
+
+func toLnUrlWithdrawSuccessDataDto(lnUrlWithdrawSuccessData breez_sdk.LnUrlWithdrawSuccessData) lnUrlWithdrawSuccessDataDto {
+	return lnUrlWithdrawSuccessDataDto{
+		Invoice: toLnInvoiceDto(lnUrlWithdrawSuccessData.Invoice),
 	}
 }
 
@@ -382,9 +420,9 @@ func toSuccessActionProcessedDto(successActionProcessed *breez_sdk.SuccessAction
 			switch resultType := successActionType.Result.(type) {
 			case breez_sdk.AesSuccessActionDataResultDecrypted:
 				return &aesSuccessActionResultDto{
-					Type: "aes", 
+					Type: "aes",
 					Result: typeDataDto{
-						Type: "decrypted", 
+						Type: "decrypted",
 						Data: aesSuccessActionDataDecryptedDto{
 							Description: resultType.Data.Description,
 							Plaintext:   resultType.Data.Plaintext,
@@ -393,9 +431,9 @@ func toSuccessActionProcessedDto(successActionProcessed *breez_sdk.SuccessAction
 				}, nil
 			case breez_sdk.AesSuccessActionDataResultErrorStatus:
 				return &aesSuccessActionResultDto{
-					Type: "aes", 
+					Type: "aes",
 					Result: aesSuccessActionResultErrorDto{
-						Type: "errorStatus", 
+						Type:   "errorStatus",
 						Reason: resultType.Reason,
 					},
 				}, nil

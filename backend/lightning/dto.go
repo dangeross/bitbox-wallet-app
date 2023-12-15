@@ -103,12 +103,33 @@ type lnUrlPayRequestDataDto struct {
 	LnAddress      *string `json:"lnAddress"`
 }
 
+type lnUrlPayRequestDto struct {
+	Data       lnUrlPayRequestDataDto `json:"data"`
+	AmountMsat uint64                 `json:"amountMsat"`
+	Comment    *string                `json:"comment"`
+}
+
+type lnUrlPaySuccessDataDto struct {
+	SuccessAction interface{} `json:"successAction"`
+	PaymentHash   string      `json:"paymentHash"`
+}
+
 type lnUrlWithdrawRequestDataDto struct {
 	Callback           string `json:"callback"`
 	K1                 string `json:"k1"`
 	DefaultDescription string `json:"defaultDescription"`
 	MinWithdrawable    uint64 `json:"minWithdrawable"`
 	MaxWithdrawable    uint64 `json:"maxWithdrawable"`
+}
+
+type lnUrlWithdrawRequestDto struct {
+	Data        lnUrlWithdrawRequestDataDto `json:"data"`
+	AmountMsat  uint64                      `json:"amountMsat"`
+	Description *string                     `json:"description"`
+}
+
+type lnUrlWithdrawSuccessDataDto struct {
+	Invoice lnInvoiceDto `json:"invoice"`
 }
 
 type openChannelFeeRequestDto struct {

@@ -160,3 +160,75 @@ func (lightning *Lightning) PostSendPayment(r *http.Request) interface{} {
 
 	return responseDto{Success: true, Data: dto}
 }
+
+// PostLnurlAuth handles the POST request from an LNURL.auth request.
+func (lightning *Lightning) PostLnurlAuth(r *http.Request) interface{} {
+	if lightning.sdkService == nil {
+		return responseDto{Success: false, ErrorMessage: "BreezServices not initialized"}
+	}
+
+	var jsonBody lnUrlAuthRequestDataDto
+	if err := json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	lnUrlCallbackStatus, err := lightning.sdkService.LnurlAuth(toLnUrlAuthRequestData(jsonBody))
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	dto, err := toLnUrlCallbackStatusDto(lnUrlCallbackStatus)
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	return responseDto{Success: true, Data: dto}
+}
+
+// PostLnurlPay handles the POST request from an LNURL-pay request.
+func (lightning *Lightning) PostLnurlPay(r *http.Request) interface{} {
+	if lightning.sdkService == nil {
+		return responseDto{Success: false, ErrorMessage: "BreezServices not initialized"}
+	}
+
+	var jsonBody lnUrlPayRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	lnUrlPayResult, err := lightning.sdkService.PayLnurl(toLnUrlPayRequest(jsonBody))
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	dto, err := toLnUrlPayResultDto(lnUrlPayResult)
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	return responseDto{Success: true, Data: dto}
+}
+
+// PostLnurlWithdraw handles the POST request from an LNURL-withdraw request.
+func (lightning *Lightning) PostLnurlWithdraw(r *http.Request) interface{} {
+	if lightning.sdkService == nil {
+		return responseDto{Success: false, ErrorMessage: "BreezServices not initialized"}
+	}
+
+	var jsonBody lnUrlWithdrawRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	lnUrlWithdrawResult, err := lightning.sdkService.WithdrawLnurl(toLnUrlWithdrawRequest(jsonBody))
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	dto, err := toLnUrlWithdrawResultDto(lnUrlWithdrawResult)
+	if err != nil {
+		return responseDto{Success: false, ErrorMessage: err.Error()}
+	}
+
+	return responseDto{Success: true, Data: dto}
+}

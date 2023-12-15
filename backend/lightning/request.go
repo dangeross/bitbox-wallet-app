@@ -68,6 +68,53 @@ func toListPaymentsRequest(listPaymentsRequest listPaymentsRequestDto) (breez_sd
 	}, nil
 }
 
+func toLnUrlAuthRequestData(lnUrlAuthRequestData lnUrlAuthRequestDataDto) breez_sdk.LnUrlAuthRequestData {
+	return breez_sdk.LnUrlAuthRequestData{
+		K1:     lnUrlAuthRequestData.K1,
+		Domain: lnUrlAuthRequestData.Domain,
+		Url:    lnUrlAuthRequestData.Url,
+		Action: lnUrlAuthRequestData.Action,
+	}
+}
+
+func toLnUrlPayRequest(lnUrlPayRequest lnUrlPayRequestDto) breez_sdk.LnUrlPayRequest {
+	return breez_sdk.LnUrlPayRequest{
+		Data:       toLnUrlPayRequestData(lnUrlPayRequest.Data),
+		AmountMsat: lnUrlPayRequest.AmountMsat,
+		Comment:    lnUrlPayRequest.Comment,
+	}
+}
+
+func toLnUrlPayRequestData(lnUrlPayRequestData lnUrlPayRequestDataDto) breez_sdk.LnUrlPayRequestData {
+	return breez_sdk.LnUrlPayRequestData{
+		Callback:       lnUrlPayRequestData.Callback,
+		MinSendable:    lnUrlPayRequestData.MinSendable,
+		MaxSendable:    lnUrlPayRequestData.MaxSendable,
+		MetadataStr:    lnUrlPayRequestData.MetadataStr,
+		CommentAllowed: lnUrlPayRequestData.CommentAllowed,
+		Domain:         lnUrlPayRequestData.Domain,
+		LnAddress:      lnUrlPayRequestData.LnAddress,
+	}
+}
+
+func toLnUrlWithdrawRequest(lnUrlWithdrawRequest lnUrlWithdrawRequestDto) breez_sdk.LnUrlWithdrawRequest {
+	return breez_sdk.LnUrlWithdrawRequest{
+		Data:        toLnUrlWithdrawRequestData(lnUrlWithdrawRequest.Data),
+		AmountMsat:  lnUrlWithdrawRequest.AmountMsat,
+		Description: lnUrlWithdrawRequest.Description,
+	}
+}
+
+func toLnUrlWithdrawRequestData(lnUrlWithdrawRequestData lnUrlWithdrawRequestDataDto) breez_sdk.LnUrlWithdrawRequestData {
+	return breez_sdk.LnUrlWithdrawRequestData{
+		Callback:           lnUrlWithdrawRequestData.Callback,
+		K1:                 lnUrlWithdrawRequestData.K1,
+		DefaultDescription: lnUrlWithdrawRequestData.DefaultDescription,
+		MinWithdrawable:    lnUrlWithdrawRequestData.MinWithdrawable,
+		MaxWithdrawable:    lnUrlWithdrawRequestData.MaxWithdrawable,
+	}
+}
+
 func toOpenChannelFeeRequestDto(params url.Values) (openChannelFeeRequestDto, error) {
 	amountMsat, err := getInt64(params, "amountMsat")
 	if err != nil {
