@@ -1086,6 +1086,7 @@
     "receive": {
       "amountSats": {
         "label": "Sats",
+        "limitLabel": "(between {{minWithdrawable}} and {{maxWithdrawable}})",
         "placeholder": "Enter amount"
       },
       "description": {
@@ -1101,6 +1102,15 @@
         "title": "Scan QR code to receive"
       },
       "openChannelWarning": "A fee of {{feeSat}} sats will be deducted to open a new channel.",
+      "qrCode": {
+        "label": "Scan QR code"
+      },
+      "rawInput": {
+        "label": "Paste from clipboard"
+      },
+      "receiving": {
+        "message": "Receiving payment"
+      },
       "subtitle": "Create lightning invoice",
       "success": {
         "message": "Lightning payment received!"
@@ -1110,11 +1120,21 @@
     "send": {
       "amountSats": {
         "label": "Sats",
+        "limitLabel": "(between {{minSendable}} and {{maxSendable}})",
         "placeholder": "Enter amount"
+      },
+      "comment": {
+        "label": "Comment",
+        "optional": "(optional)",
+        "placeholder": "Comment"
       },
       "confirm": {
         "amount": "Amount",
         "memo": "Memo",
+        "lnUrl": {
+          "title": "Confirm LNURL payment",
+          "toIdentifier": "to {{identifier}}"
+        },
         "title": "Confirm transaction details"
       },
       "qrCode": {

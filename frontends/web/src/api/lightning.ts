@@ -914,6 +914,18 @@ export const postReceivePayment = async (data: ReceivePaymentRequest): Promise<R
   );
 };
 
+export const postLnurlAuth = async (data: LnUrlAuthRequestData): Promise<LnUrlCallbackStatus> => {
+  return postApiResponse<LnUrlCallbackStatus, LnUrlAuthRequestData>('lightning/lnurl-auth', data, 'Error calling postLnurlAuth');
+};
+
+export const postLnurlPay = async (data: LnUrlPayRequest): Promise<LnUrlPayResult> => {
+  return postApiResponse<LnUrlPayResult, LnUrlPayRequest>('lightning/lnurl-pay', data, 'Error calling postLnurlPay');
+};
+
+export const postLnurlWithdraw = async (data: LnUrlWithdrawRequest): Promise<LnUrlWithdrawResult> => {
+  return postApiResponse<LnUrlWithdrawResult, LnUrlWithdrawRequest>('lightning/lnurl-withdraw', data, 'Error calling postLnurlWithdraw');
+};
+
 /**
  * Subscriptions
  */

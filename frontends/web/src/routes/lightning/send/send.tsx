@@ -20,8 +20,17 @@ import { useTranslation } from 'react-i18next';
 import * as accountApi from '../../../api/account';
 import { Column, Grid, GuideWrapper, GuidedContent, Header, Main } from '../../../components/layout';
 import { View, ViewButtons, ViewContent } from '../../../components/view/view';
-import { Button, Input } from '../../../components/forms';
-import { InputType, InputTypeVariant, SdkError, getParseInput, postSendPayment } from '../../../api/lightning';
+import { Button, Input, OptionalLabel } from '../../../components/forms';
+import {
+  InputType,
+  InputTypeVariant,
+  LnInvoice,
+  LnUrlPayRequestData,
+  SdkError,
+  getParseInput,
+  postLnurlPay,
+  postSendPayment
+} from '../../../api/lightning';
 import { SimpleMarkup } from '../../../utils/markup';
 import { route } from '../../../utils/route';
 import { toMsat, toSat } from '../../../utils/conversion';
@@ -51,12 +60,18 @@ export function Send() {
   const [amountRequired, setAmountRequired] = useState<boolean>(false);
   const [amountSats, setAmountSats] = useState<number>(0);
   const [amountSatsText, setAmountSatsText] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [minSendable, setMinSendable] = useState<number>(0);
+  const [maxSendable, setMaxSendable] = useState<number>(0);
+  const [optionalComment, setOptionalComment] = useState<string>('');
   const [parsedInput, setParsedInput] = useState<InputType>();
   const [rawInputError, setRawInputError] = useState<string>();
+  const [sendDisabled, setSendDisabled] = useState<boolean>();
   const [sendError, setSendError] = useState<string>();
   const [step, setStep] = useState<TStep>('select-invoice');
 
   const back = () => {
+    setSendError(undefined);
     switch (step) {
     case 'select-invoice':
       route('/lightning');
@@ -64,7 +79,6 @@ export function Send() {
     case 'confirm':
     case 'success':
       setStep('select-invoice');
-      setSendError(undefined);
       setParsedInput(undefined);
       break;
     }
@@ -75,9 +89,49 @@ export function Send() {
     setAmountSatsText(target.value);
   };
 
+  const onOptionalCommentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    setOptionalComment(target.value);
+  };
+
   useEffect(() => {
     setAmountSats(+amountSatsText);
   }, [amountSatsText]);
+
+  useEffect(() => {
+    switch (parsedInput?.type) {
+    case InputTypeVariant.BOLT11:
+      setSendDisabled(amountRequired && amountSats <= 0);
+      break;
+    case InputTypeVariant.LN_URL_PAY:
+      setSendDisabled(
+        amountSats <= 0 ||
+          amountSats < minSendable ||
+          amountSats > maxSendable ||
+          optionalComment.length > parsedInput.data.commentAllowed
+      );
+      break;
+    }
+  }, [amountRequired, amountSatsText, amountSats, maxSendable, minSendable, parsedInput, optionalComment]);
+
+  useEffect(() => {
+    if (parsedInput?.type === InputTypeVariant.LN_URL_PAY) {
+      const metadata: any[] = JSON.parse(parsedInput.data.metadataStr);
+      const metadataTextPlain = metadata.find((el) => {
+        return el[0] === 'text/plain';
+      });
+      const metadataTextIdentifier = metadata.find((el) => {
+        return el[0] === 'text/identifier';
+      });
+      setDescription(
+        metadataTextPlain
+          ? metadataTextPlain[1]
+          : t('lightning.send.confirm.lnUrl.title') + metadataTextIdentifier
+            ? ` ${metadataTextIdentifier[1]}`
+            : ''
+      );
+    }
+  }, [parsedInput, t]);
 
   const parseInput = useCallback(async (rawInput: string) => {
     setRawInputError(undefined);
@@ -92,6 +146,15 @@ export function Send() {
           setAmountRequired(true);
           setAmountSatsText('');
         }
+        setParsedInput(result);
+        setStep('confirm');
+        break;
+      case InputTypeVariant.LN_URL_PAY:
+        setAmountRequired(true);
+        setAmountSatsText('');
+        setMaxSendable(toSat(result.data.maxSendable));
+        setMinSendable(toSat(result.data.minSendable));
+        setOptionalComment('');
         setParsedInput(result);
         setStep('confirm');
         break;
@@ -117,6 +180,11 @@ export function Send() {
         setStep('success');
         setTimeout(() => route('/lightning'), 5000);
         break;
+      case InputTypeVariant.LN_URL_PAY:
+        await postLnurlPay({ data: parsedInput.data, amountMsat: toMsat(amountSats), comment: optionalComment });
+        setStep('success');
+        setTimeout(() => route('/lightning'), 5000);
+        break;
       }
     } catch (e) {
       setStep('select-invoice');
@@ -131,48 +199,84 @@ export function Send() {
   const renderInputTypes = () => {
     switch (parsedInput!.type) {
     case InputTypeVariant.BOLT11:
-      const balance: accountApi.IBalance = {
-        hasAvailable: true,
-        available: {
-          amount: `${toSat(parsedInput?.invoice.amountMsat || 0)}`,
-          unit: 'sat'
-        },
-        hasIncoming: false,
-        incoming: {
-          amount: '0',
-          unit: 'sat'
-        }
-      };
-      return (
-        <Column>
-          <h1 className={styles.title}>{t('lightning.send.confirm.title')}</h1>
-          {amountRequired ? (
-            <Input
-              type="number"
-              min="0"
-              label={t('lightning.send.amountSats.label')}
-              placeholder={t('lightning.send.amountSats.placeholder')}
-              id="amountSatsInput"
-              onInput={onAmountSatsChange}
-              value={amountSatsText}
-              autoFocus
-            />
-          ) : (
-            <div className={styles.info}>
-              <h2 className={styles.label}>{t('lightning.send.confirm.amount')}</h2>
-              <Amount amount={balance.available.amount} unit={balance.available.unit} removeBtcTrailingZeroes />/{' '}
-              <FiatConversion amount={balance.available} noBtcZeroes />
-            </div>
-          )}
-          {parsedInput?.invoice.description && (
-            <div className={styles.info}>
-              <h2 className={styles.label}>{t('lightning.send.confirm.memo')}</h2>
-              {parsedInput?.invoice.description}
-            </div>
-          )}
-        </Column>
-      );
+      return renderBolt11Inputs(parsedInput!.invoice);
+    case InputTypeVariant.LN_URL_PAY:
+      return renderLnUrlPayInputs(parsedInput!.data);
     }
+  };
+
+  const renderBolt11Inputs = (invoice: LnInvoice) => {
+    const balance: accountApi.IBalance = {
+      hasAvailable: true,
+      available: {
+        amount: `${toSat(invoice.amountMsat || 0)}`,
+        unit: 'sat'
+      },
+      hasIncoming: false,
+      incoming: {
+        amount: '0',
+        unit: 'sat'
+      }
+    };
+    return (
+      <Column>
+        <h1 className={styles.title}>{t('lightning.send.confirm.title')}</h1>
+        {amountRequired ? (
+          <Input
+            type="number"
+            min="0"
+            label={t('lightning.send.amountSats.label')}
+            placeholder={t('lightning.send.amountSats.placeholder')}
+            id="amountSatsInput"
+            onInput={onAmountSatsChange}
+            value={amountSatsText}
+            autoFocus
+          />
+        ) : (
+          <div className={styles.info}>
+            <h2 className={styles.label}>{t('lightning.send.confirm.amount')}</h2>
+            <Amount amount={balance.available.amount} unit={balance.available.unit} removeBtcTrailingZeroes />/{' '}
+            <FiatConversion amount={balance.available} noBtcZeroes />
+          </div>
+        )}
+        {invoice.description && (
+          <div className={styles.info}>
+            <h2 className={styles.label}>{t('lightning.send.confirm.memo')}</h2>
+            {invoice.description}
+          </div>
+        )}
+      </Column>
+    );
+  };
+
+  const renderLnUrlPayInputs = (data: LnUrlPayRequestData) => {
+    return (
+      <Column>
+        <h1 className={styles.title}>{ description }</h1>
+        <Input
+          type="number"
+          min="0"
+          label={t('lightning.send.amountSats.label')}
+          labelSection={<OptionalLabel>{t('lightning.send.amountSats.limitLabel', { maxSendable, minSendable })}</OptionalLabel>}
+          placeholder={t('lightning.send.amountSats.placeholder')}
+          id="amountSatsInput"
+          onInput={onAmountSatsChange}
+          value={amountSatsText}
+          autoFocus
+        />
+        {data.commentAllowed > 0 && (
+          <Input
+            type="text"
+            label={t('lightning.send.comment.label')}
+            labelSection={<OptionalLabel>{t('lightning.send.comment.optional')}</OptionalLabel>}
+            placeholder={t('lightning.send.comment.placeholder')}
+            id="optionalComment"
+            onInput={onOptionalCommentChange}
+            value={optionalComment}
+          />
+        )}
+      </Column>
+    );
   };
 
   const renderSteps = () => {
@@ -210,7 +314,7 @@ export function Send() {
             <Grid col="1">{renderInputTypes()}</Grid>
           </ViewContent>
           <ViewButtons>
-            <Button primary onClick={sendPayment} disabled={amountSatsText === '' || amountSats === 0}>
+            <Button primary onClick={sendPayment} disabled={sendDisabled}>
               {t('button.send')}
             </Button>
             <Button secondary onClick={back}>
