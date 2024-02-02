@@ -4,14 +4,25 @@
   height: 0;
   justify-content: center;
   position: relative;
-  top: calc(300px / 2) /*300px is the height of video element in ScanQRDialog*/
+  transform: translateY(130px);
 }
 
 .qrVideo {
+  display: block;
+  height: auto;
+  margin-bottom: 0;
+  object-fit: cover;
   width: 100%;
-  margin-bottom: var(--spacing-default);
+  height: 100%;
+  position: relative;
 }
 .qrVideo + :global(.scan-region-highlight) svg {
   stroke: var(--color-darkyellow) !important;
   stroke-width: 3 !important;
+}
+
+@media (max-width: 768px) {
+  .qrVideo {
+    height: 100vh;
+  }
 }

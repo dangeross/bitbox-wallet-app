@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import { Dialog, DialogButtons } from '../../../../../components/dialog/dialog';
-import { ScanQRVideo } from '../inputs/scan-qr-video';
 import { useTranslation } from 'react-i18next';
+import { Dialog, DialogButtons } from '../../../../../components/dialog/dialog';
 import { Button } from '../../../../../components/forms';
+import { ScanQRVideo } from '../inputs/scan-qr-video';
+import style from './scan-qr-video.module.css';
 
 type TProps = {
     activeScanQR: boolean;
@@ -32,10 +33,12 @@ export const ScanQRDialog = ({ parseQRResult, activeScanQR, toggleScanQR, onChan
   return (
     <Dialog
       large
+      fullscreenOnMobile
       open={activeScanQR}
       title={t('send.scanQR')}
       onClose={toggleScanQR}>
       <ScanQRVideo
+        className={style.video}
         onResult={result => {
           parseQRResult(result);
           onChangeActiveScanQR(false);
